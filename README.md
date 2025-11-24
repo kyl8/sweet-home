@@ -8,7 +8,7 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![JWT](https://img.shields.io/badge/JWT-Authentication-000000?style=for-the-badge)](https://jwt.io/)
-[![Status](https://img.shields.io/badge/Status-Active%20Development-green?style=for-the-badge)](https://github.com)
+[![Status](https://img.shields.io/badge/Status-Partial%20abandonment-yellow?style=for-the-badge)](https://github.com)
 
 **⚠️ Note:** _Experimental codebase with some unsafe patterns. Production use requires security hardening and refactoring._
 
