@@ -43,3 +43,14 @@ build/
 mockData.cjs
 uploadData.cjs
 firebaseTest.js
+
+# Server env
+.venv/
+__pycache__/
+
+# Secrets
+.secret/
+
+# Trash
+comprovante/
+barcodes/

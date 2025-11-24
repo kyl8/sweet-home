@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ObservationsModal from '../components/modals/ObservationsModal'; // Reutilizando o modal
+import ObservationsModal from '../components/modals/ObservationsModal'; 
 
 const KitchenwareForm = ({ onSubmit, onCancel, initialData, pageTitle, buttonText }) => {
     const [utensil, setUtensil] = useState({

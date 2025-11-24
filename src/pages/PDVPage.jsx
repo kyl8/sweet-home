@@ -1,17 +1,42 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiPlus, FiMinus, FiShoppingCart } from 'react-icons/fi';
+import { FiPlus, FiMinus, FiShoppingCart, FiTrash2 } from 'react-icons/fi'; // <-- adicionado FiTrash2
+import { useToast } from '../hooks/useToast';
+import { salesService } from '../services/salesService';
+import { useFirestore } from '../hooks/useFirestore';
+import { FIRESTORE_COLLECTIONS } from '../constants/firebaseCollections';
+import { logger } from '../utils/logger';
 import QRCodeModal from '../components/modals/QRCodeModal';
 import ReceiptModal from '../components/modals/ReceiptModal';
+import LoadingPage from '../components/LoadingPage';
 
 const PDVPage = ({ sweets, onNavigate, userData }) => {
+    const toast = useToast();
+    const { data: recipes } = useFirestore(FIRESTORE_COLLECTIONS.RECIPES);
+    const { data: ingredients } = useFirestore(FIRESTORE_COLLECTIONS.INGREDIENTS);
+    
     const [cart, setCart] = useState([]);
     const [isQrModalOpen, setIsQrModalOpen] = useState(false);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [currentSaleDocument, setCurrentSaleDocument] = useState(null);
 
     const handleAddToCart = (sweetToAdd) => {
+        if (sweetToAdd.stock <= 0) {
+            toast.warning('Produto sem estoque', `"${sweetToAdd.name}" não está disponível`);
+            return;
+        }
+
         const existingItem = cart.find(item => item.id === sweetToAdd.id);
         if (existingItem) {
+            const maxQty = sweetToAdd.stock;
+            if (existingItem.quantity >= maxQty) {
+                toast.warning(
+                    'Limite de estoque atingido',
+                    `Apenas ${maxQty} unidade(s) de "${sweetToAdd.name}" disponível(is)`
+                );
+                return;
+            }
             setCart(cart.map(item =>
                 item.id === sweetToAdd.id ? { ...item, quantity: item.quantity + 1 } : item
             ));
@@ -21,24 +46,94 @@ const PDVPage = ({ sweets, onNavigate, userData }) => {
     };
 
     const handleUpdateQuantity = (sweetId, amount) => {
-        setCart(cart.map(item => {
+        const sweet = sweets.find(s => s.id === sweetId);
+        if (!sweet) return;
+
+        setCart((prev) => prev.map(item => {
             if (item.id === sweetId) {
-                const newQuantity = item.quantity + amount;
-                return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
+                let newQuantity = item.quantity + amount;
+
+                if (newQuantity < 1) {
+                    toast.info('Quantidade mínima é 1. Para remover, use o botão excluir.');
+                    newQuantity = 1;
+                }
+
+
+                if (newQuantity > sweet.stock) {
+                    toast.warning(
+                        'Quantidade excede estoque',
+                        `Máximo disponível: ${sweet.stock} unidade(s)`
+                    );
+                    newQuantity = sweet.stock;
+                }
+
+                return { ...item, quantity: newQuantity };
             }
             return item;
-        }).filter(Boolean));
+        }));
+    };
+
+    const handleSetQuantity = (sweetId, value) => {
+        setCart((prev) => {
+            const parsed = parseInt(String(value), 10);
+            const qty = isNaN(parsed) ? 1 : parsed; 
+            const sweet = sweets.find((s) => String(s.id) === String(sweetId) || s.id === sweetId);
+            if (!sweet) return prev;
+
+            let finalQty = qty;
+            if (finalQty < 1) {
+                finalQty = 1;
+            }
+            if (finalQty > sweet.stock) {
+                toast.warning('Quantidade excede estoque', `Máximo disponível: ${sweet.stock} unidade(s)`);
+                finalQty = sweet.stock;
+            }
+
+            return prev.map((i) => (String(i.id) === String(sweetId) ? { ...i, quantity: finalQty } : i));
+        });
+    };
+
+    const handleRemoveItem = (sweetId) => {
+        setCart(prev => prev.filter(i => String(i.id) !== String(sweetId)));
+        toast.info('Item removido do carrinho');
     };
 
     const orderTotal = useMemo(() => {
         return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
     }, [cart]);
+
     const handleInitiateSale = () => {
         if (cart.length === 0) {
-            alert("O carrinho está vazio!");
+            toast.warning('Carrinho vazio', 'Adicione pelo menos um produto');
             return;
         }
-        setIsQrModalOpen(true);
+
+        for (const item of cart) {
+            const sweet = sweets.find(s => s.id === item.id);
+            if (!sweet || sweet.stock < item.quantity) {
+                toast.error(
+                    'Estoque insuficiente',
+                    `"${sweet?.name || 'Produto'}" não tem estoque suficiente`
+                );
+                return;
+            }
+        }
+
+        try {
+            const saleDoc = salesService.createSaleDocument(
+                cart,
+                sweets,
+                recipes,
+                ingredients,
+                userData
+            );
+            setCurrentSaleDocument(saleDoc);
+            setIsQrModalOpen(true);
+            logger.info('Documento de venda criado', { items: cart.length });
+        } catch (error) {
+            toast.error('Erro ao preparar venda', error.message);
+            logger.error('Erro ao criar documento de venda', { error: error.message });
+        }
     };
 
     const handleConfirmSale = () => {
@@ -46,21 +141,64 @@ const PDVPage = ({ sweets, onNavigate, userData }) => {
         setIsReceiptModalOpen(true);
     };
 
-    const handleFinalizeAndReceipt = (shouldGenerateReceipt) => {
-        const summary = cart.map(item => `${item.quantity}x ${item.name}`).join(', ');
-        if (shouldGenerateReceipt) {
-            alert(`Venda finalizada com comprovante!\n\nItens: ${summary}\nTotal: R$ ${orderTotal.toFixed(2).replace('.', ',')}`);
-        } else {
-            alert(`Venda finalizada sem comprovante!\n\nTotal: R$ ${orderTotal.toFixed(2).replace('.', ',')}`);
+    const handleFinalizeAndReceipt = async (shouldGenerateReceipt) => {
+        if (!currentSaleDocument) {
+            toast.error('Erro', 'Documento de venda não encontrado');
+            return;
         }
-        setIsReceiptModalOpen(false);
-        setCart([]);
+
+        setIsProcessing(true);
+
+        try {
+            const validation = salesService.validateSale(currentSaleDocument, sweets);
+            if (!validation.isValid) {
+                throw new Error(validation.error);
+            }
+
+            const result = await salesService.finalizeSale(
+                currentSaleDocument,
+                cart,
+                sweets,
+                userData
+            );
+
+            logger.info('Venda finalizada com sucesso', result);
+
+            if (shouldGenerateReceipt) {
+                toast.success(
+                    'Venda concluída!',
+                    `Total: R$ ${orderTotal.toFixed(2).replace('.', ',')}`
+                );
+            } else {
+                toast.success('Venda concluída sem recibo');
+            }
+
+            setCart([]);
+            setCurrentSaleDocument(null);
+            setIsReceiptModalOpen(false);
+
+        } catch (error) {
+            logger.error('Erro ao finalizar venda', { error: error.message });
+            toast.error(
+                'Falha ao processar venda',
+                error.message || 'Tente novamente'
+            );
+        } finally {
+            setIsProcessing(false);
+        }
     };
-    
+
     const handleCancelSale = () => {
         setIsQrModalOpen(false);
         setIsReceiptModalOpen(false);
+        setCurrentSaleDocument(null);
+        toast.info('Venda cancelada');
     };
+
+    if (isProcessing) {
+        return <LoadingPage message="Processando venda" submessage="Salvar dados e atualizar estoque" />;
+    }
+
     const gridContainerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
     const gridItemVariants = { hidden: { y: 20, opacity: 0 }, show: { y: 0, opacity: 1 } };
 
@@ -75,10 +213,12 @@ const PDVPage = ({ sweets, onNavigate, userData }) => {
                         </motion.h2>
                         <motion.div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-5" variants={gridContainerVariants} initial="hidden" animate="show">
                             {sweets.map(sweet => (
-                                <motion.div key={sweet.id} onClick={() => handleAddToCart(sweet)} className="bg-white border border-gray-200 rounded-xl p-3 md:p-4 flex flex-col items-center text-center cursor-pointer transition-shadow duration-300" variants={gridItemVariants} whileHover={{ scale: 1.05, y: -5, boxShadow: "0px 10px 20px rgba(0,0,0,0.1)" }} whileTap={{ scale: 0.95 }}>
+                                <motion.div key={sweet.id} onClick={() => handleAddToCart(sweet)} className={`bg-white border rounded-xl p-3 md:p-4 flex flex-col items-center text-center cursor-pointer transition-shadow duration-300 ${sweet.stock > 0 ? 'border-gray-200 hover:shadow-lg' : 'border-red-300 opacity-50 cursor-not-allowed'}`} variants={gridItemVariants} whileHover={sweet.stock > 0 ? { scale: 1.05, y: -5, boxShadow: "0px 10px 20px rgba(0,0,0,0.1)" } : {}} whileTap={sweet.stock > 0 ? { scale: 0.95 } : {}}>
                                     <img src={sweet.image} alt={sweet.name} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg mb-3" />
                                     <h3 className="font-bold text-gray-800 flex-grow text-sm md:text-base">{sweet.name}</h3>
                                     <p className="text-pink-500 font-semibold mt-1 text-base md:text-lg">R$ {sweet.price.toFixed(2).replace('.', ',')}</p>
+                                    {sweet.stock <= 0 && <p className="text-red-600 font-bold text-xs mt-1">SEM ESTOQUE</p>}
+                                    {sweet.stock > 0 && sweet.stock <= 5 && <p className="text-yellow-600 font-bold text-xs mt-1">Apenas {sweet.stock}</p>}
                                 </motion.div>
                             ))}
                         </motion.div>
@@ -97,21 +237,58 @@ const PDVPage = ({ sweets, onNavigate, userData }) => {
                                         <p className="mt-4 font-medium">Seu carrinho está vazio.</p>
                                     </motion.div>
                                 ) : (
-                                    cart.map(item => (
-                                        <motion.div key={item.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.3 }} className="flex justify-between items-center mb-4">
-                                            <div>
-                                                <p className="font-semibold text-gray-800 text-sm md:text-base">{item.name}</p>
-                                                <p className="text-gray-500 text-xs md:text-sm">R$ {item.price.toFixed(2).replace('.', ',')}</p>
-                                            </div>
-                                            <div className="flex items-center gap-2 md:gap-3">
-                                                <motion.button whileTap={{ scale: 0.8 }} onClick={() => handleUpdateQuantity(item.id, -1)} className="bg-gray-100 text-gray-600 rounded-full w-6 h-6 md:w-7 md:h-7 flex items-center justify-center font-bold hover:bg-gray-200 transition-colors"><FiMinus /></motion.button>
-                                                <span className="font-bold w-4 text-center text-sm md:text-base">{item.quantity}</span>
-                                                <motion.button whileTap={{ scale: 0.8 }} onClick={() => handleUpdateQuantity(item.id, 1)} className="bg-gray-100 text-gray-600 rounded-full w-6 h-6 md:w-7 md:h-7 flex items-center justify-center font-bold hover:bg-gray-200 transition-colors"><FiPlus /></motion.button>
-                                            </div>
-                                            <p className="font-bold w-20 md:w-24 text-right text-gray-800 text-sm md:text-base">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</p>
-                                        </motion.div>
-                                    ))
-                                )}
+                                    cart.map(item => {
+                                        const sweetStock = sweets.find(s => String(s.id) === String(item.id))?.stock ?? item.quantity;
+                                        return (
+                                            <motion.div key={item.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.3 }} className="flex justify-between items-center mb-4">
+                                                <div>
+                                                    <p className="font-semibold text-gray-800 text-sm md:text-base">{item.name}</p>
+                                                    <p className="text-gray-500 text-xs md:text-sm">R$ {item.price.toFixed(2).replace('.', ',')}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2 md:gap-3">
+                                                    <motion.button
+                                                        whileTap={{ scale: 0.8 }}
+                                                        onClick={() => handleUpdateQuantity(item.id, -1)}
+                                                        aria-label={`Diminuir quantidade de ${item.name}`}
+                                                        className="bg-gray-100 text-gray-600 rounded-full w-6 h-6 md:w-7 md:h-7 flex items-center justify-center font-bold hover:bg-gray-200 transition-colors"
+                                                    >
+                                                        <FiMinus size={14} />
+                                                    </motion.button>
+
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max={sweetStock}
+                                                        value={item.quantity}
+                                                        onChange={(e) => handleSetQuantity(item.id, e.target.value)}
+                                                        aria-label={`Quantidade de ${item.name}`}
+                                                        className="w-16 text-center border rounded px-2 py-1 text-sm md:text-base"
+                                                    />
+
+                                                    <motion.button
+                                                        whileTap={{ scale: 0.8 }}
+                                                        onClick={() => handleUpdateQuantity(item.id, 1)}
+                                                        aria-label={`Aumentar quantidade de ${item.name}`}
+                                                        disabled={item.quantity >= sweetStock}
+                                                        className={`bg-gray-100 text-gray-600 rounded-full w-6 h-6 md:w-7 md:h-7 flex items-center justify-center font-bold hover:bg-gray-200 transition-colors ${item.quantity >= sweetStock ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        <FiPlus size={14} />
+                                                    </motion.button>
+
+                                                    <motion.button
+                                                        whileTap={{ scale: 0.9 }}
+                                                        onClick={() => handleRemoveItem(item.id)}
+                                                        aria-label={`Remover ${item.name} do carrinho`}
+                                                        className="bg-red-100 text-red-600 rounded-full w-6 h-6 md:w-7 md:h-7 flex items-center justify-center font-bold hover:bg-red-200 transition-colors"
+                                                    >
+                                                        <FiTrash2 size={14} />
+                                                    </motion.button>
+                                                </div>
+                                                <p className="font-bold w-20 md:w-24 text-right text-gray-800 text-sm md:text-base">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</p>
+                                            </motion.div>
+                                        );
+                                    })
+                                 )}
                             </AnimatePresence>
                         </div>
                         <div className="border-t border-gray-200 pt-5 mt-4 flex-shrink-0">
