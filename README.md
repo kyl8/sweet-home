@@ -1,4 +1,4 @@
-# 🍰 Sweet Home — Confectionery Management System
+# Sweet Home — Confectionery Management System
 
 **Extensible inventory, POS, and financial analytics platform for confectioneries with Python/Quart backend**
 
