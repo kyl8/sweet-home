@@ -1,384 +1,282 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { db } from './firebaseConfig';
-import { FIRESTORE_COLLECTIONS } from './constants/firebaseCollections';
-import { firestoreService } from './services/firestoreService';
-import { useFirestore } from './hooks/useFirestore';
-import { logger } from './utils/logger';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import ErrorBoundary from './components/ErrorBoundary';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import OfflineIndicator from './components/OfflineIndicator';
 import LoadingPage from './components/LoadingPage';
-import LoginPage from './pages/Login.jsx';
-import RegisterPage from './pages/Register.jsx';
-import DashboardPage from './pages/Dashboard.jsx';
-import SweetForm from './pages/SweetForm.jsx';
-import IngredientForm from './pages/IngredientForm.jsx';
-import KitchenwareForm from './pages/KitchenwareForm.jsx';
-import PDVPage from './pages/PDVPage.jsx';
-import Header from './components/Header.jsx';
-import Footer from './components/Footer.jsx';
+import LoginPage from './pages/Login';
+import RegisterPage from './pages/Register';
+import DashboardPage from './pages/Dashboard';
 import FinancePage from './pages/FinancePage';
+import ReportsPage from './pages/ReportsPage';
+import PDVPage from './pages/PDVPage';
+import SweetForm from './pages/SweetForm';
+import IngredientForm from './pages/IngredientForm';
+import KitchenwareForm from './pages/KitchenwareForm';
+import { useFirestore } from './hooks/useFirestore';
+import { FIRESTORE_COLLECTIONS } from './constants/firebaseCollections';
+import { authService } from './services/authService';
+import { firestoreService } from './services/firestoreService';
+import { logger } from './utils/logger';
+import { useToast } from './hooks/useToast';
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+const App = () => {
+  const toast = useToast();
   const [currentPage, setCurrentPage] = useState('login');
   const [userData, setUserData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('sweets');
-  const [firebaseError, setFirebaseError] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingSweet, setEditingSweet] = useState(null);
-  const [editingIngredient, setEditingIngredient] = useState(null);
-  const [editingUtensil, setEditingUtensil] = useState(null);
 
-  const { data: sweets, loading: sweetsLoading, error: sweetsError } = useFirestore(FIRESTORE_COLLECTIONS.SWEETS);
-  const { data: recipes, loading: recipesLoading } = useFirestore(FIRESTORE_COLLECTIONS.RECIPES);
-  const { data: sales } = useFirestore(FIRESTORE_COLLECTIONS.SALES);
+  const { data: sweets, loading: sweetsLoading } = useFirestore(FIRESTORE_COLLECTIONS.SWEETS);
   const { data: ingredients, loading: ingredientsLoading } = useFirestore(FIRESTORE_COLLECTIONS.INGREDIENTS);
-  const { data: utensils } = useFirestore(FIRESTORE_COLLECTIONS.KITCHENWARE);
+  const { data: kitchenware, loading: kitchenwareLoading } = useFirestore(FIRESTORE_COLLECTIONS.KITCHENWARE);
+  const { data: sales, loading: salesLoading } = useFirestore(FIRESTORE_COLLECTIONS.SALES);
+  const { data: recipes } = useFirestore(FIRESTORE_COLLECTIONS.RECIPES);
 
-  const isLoading = sweetsLoading || recipesLoading || ingredientsLoading;
+  const [localSweets, setLocalSweets] = useState([]);
+  const [localIngredients, setLocalIngredients] = useState([]);
+  const [localKitchenware, setLocalKitchenware] = useState([]);
 
   useEffect(() => {
-    const token = sessionStorage.getItem('jwt_token');
-    const storedUserData = sessionStorage.getItem('userData');
-
-    if (token && storedUserData) {
+    const storedUser = sessionStorage.getItem('userData');
+    if (storedUser) {
       try {
-        setIsAuthenticated(true);
-        setUserData(JSON.parse(storedUserData));
+        const user = JSON.parse(storedUser);
+        setUserData(user);
         setCurrentPage('dashboard');
-        logger.info('User session restored');
+        logger.info('User session restored', { userId: user.id });
       } catch (error) {
-        logger.error('Failed to restore session', { error: error.message });
-        sessionStorage.clear();
+        logger.error('Error parsing stored user', { error: error.message });
+        sessionStorage.removeItem('userData');
       }
     }
+    setIsLoading(false);
   }, []);
 
-  const handleLogin = useCallback((data) => {
+  useEffect(() => {
+    if (sweets) setLocalSweets(sweets);
+  }, [sweets]);
+
+  useEffect(() => {
+    if (ingredients) setLocalIngredients(ingredients);
+  }, [ingredients]);
+
+  useEffect(() => {
+    if (kitchenware) setLocalKitchenware(kitchenware);
+  }, [kitchenware]);
+
+  const handleLogin = (data) => {
     setUserData(data.user);
-    setIsAuthenticated(true);
-    setActiveTab('sweets');
     setCurrentPage('dashboard');
-    logger.info('User logged in successfully');
-  }, []);
-
-  const handleLogout = useCallback(() => {
-    sessionStorage.clear();
-    setIsAuthenticated(false);
-    setUserData(null);
-    setActiveTab('sweets');
-    setCurrentPage('login');
-    logger.info('User logged out');
-  }, []);
+  };
 
   const handleRegister = (data) => {
-    alert("Registro bem-sucedido! Por favor, faça o login.");
+    setUserData(data.user);
+    setCurrentPage('dashboard');
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setUserData(null);
     setCurrentPage('login');
+    sessionStorage.clear();
+    logger.info('User logged out');
   };
 
-  const handleNavigate = (page, data = null) => {
-    if (page === 'edit-sweet') setEditingSweet(data);
-    else if (page === 'edit-ingredient') setEditingIngredient(data);
-    else if (page === 'edit-utensil') setEditingUtensil(data);
-    else {
-      setEditingSweet(null);
-      setEditingIngredient(null);
-      setEditingUtensil(null);
-    }
+  const handleNavigate = (page, item = null) => {
     setCurrentPage(page);
+    if (item) {
+      setEditingItem(item);
+    } else {
+      setEditingItem(null);
+    }
   };
 
-  const handleAddSweet = useCallback(async (newSweet) => {
-    setIsSubmitting(true);
+  const handleDelete = async (id) => {
     try {
-      await firestoreService.addDocument(
-        FIRESTORE_COLLECTIONS.SWEETS,
-        newSweet,
-        userData?.id || 'anonymous'
-      );
-      setActiveTab('sweets');
-      setCurrentPage('dashboard');
-      logger.info('Sweet added successfully');
-    } catch (error) {
-      logger.error('Failed to add sweet', { error: error.message });
-      alert(`Error adding sweet: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [userData]);
+      const collectionMap = {
+        'sweets': FIRESTORE_COLLECTIONS.SWEETS,
+        'ingredients': FIRESTORE_COLLECTIONS.INGREDIENTS,
+        'kitchenware': FIRESTORE_COLLECTIONS.KITCHENWARE
+      };
 
-  const handleEditSweet = useCallback(async (updatedSweet) => {
-    if (!updatedSweet.id) {
-      alert('Error: Sweet ID not found');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const { id, ...sweetData } = updatedSweet;
-      await firestoreService.updateDocument(
-        FIRESTORE_COLLECTIONS.SWEETS,
-        id,
-        sweetData,
-        userData?.id || 'anonymous'
-      );
-      setEditingSweet(null);
-      setActiveTab('sweets');
-      setCurrentPage('dashboard');
-      logger.info('Sweet updated successfully');
-    } catch (error) {
-      logger.error('Failed to update sweet', { error: error.message });
-      alert(`Error updating sweet: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [userData]);
-
-  const handleAddIngredient = useCallback(async (newIngredient) => {
-    setIsSubmitting(true);
-    try {
-      await firestoreService.addDocument(
-        FIRESTORE_COLLECTIONS.INGREDIENTS,
-        newIngredient,
-        userData?.id || 'anonymous'
-      );
-      setActiveTab('ingredients');
-      setCurrentPage('dashboard');
-      logger.info('Ingredient added successfully');
-    } catch (error) {
-      logger.error('Failed to add ingredient', { error: error.message });
-      alert(`Error adding ingredient: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [userData]);
-
-  const handleEditIngredient = useCallback(async (updatedIngredient) => {
-    if (!updatedIngredient.id) {
-      alert('Error: Ingredient ID not found');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const { id, ...ingredientData } = updatedIngredient;
-      await firestoreService.updateDocument(
-        FIRESTORE_COLLECTIONS.INGREDIENTS,
-        id,
-        ingredientData,
-        userData?.id || 'anonymous'
-      );
-      setEditingIngredient(null);
-      setActiveTab('ingredients');
-      setCurrentPage('dashboard');
-      logger.info('Ingredient updated successfully');
-    } catch (error) {
-      logger.error('Failed to update ingredient', { error: error.message });
-      alert(`Error updating ingredient: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [userData]);
-
-  const handleAddUtensil = useCallback(async (newUtensil) => {
-    setIsSubmitting(true);
-    try {
-      await firestoreService.addDocument(
-        FIRESTORE_COLLECTIONS.KITCHENWARE,
-        newUtensil,
-        userData?.id || 'anonymous'
-      );
-      setActiveTab('kitchenware');
-      setCurrentPage('dashboard');
-      logger.info('Utensil added successfully');
-    } catch (error) {
-      logger.error('Failed to add utensil', { error: error.message });
-      alert(`Error adding utensil: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [userData]);
-
-  const handleEditUtensil = useCallback(async (updatedUtensil) => {
-    if (!updatedUtensil.id) {
-      alert('Error: Utensil ID not found');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const { id, ...utensilData } = updatedUtensil;
-      await firestoreService.updateDocument(
-        FIRESTORE_COLLECTIONS.KITCHENWARE,
-        id,
-        utensilData,
-        userData?.id || 'anonymous'
-      );
-      setEditingUtensil(null);
-      setActiveTab('kitchenware');
-      setCurrentPage('dashboard');
-      logger.info('Utensil updated successfully');
-    } catch (error) {
-      logger.error('Failed to update utensil', { error: error.message });
-      alert(`Error updating utensil: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [userData]);
-
-  const handleDelete = useCallback(async (id) => {
-    if (!id) {
-      alert('Error: ID not provided');
-      return;
-    }
-
-    if (window.confirm('Are you sure you want to delete this item permanently?')) {
-      try {
-        await firestoreService.deleteDocument(
-          activeTab,
-          id,
-          userData?.id || 'anonymous'
-        );
-        alert('Item deleted successfully');
-        logger.info(`Document deleted from ${activeTab}`, { docId: id });
-      } catch (error) {
-        logger.error('Failed to delete item', { error: error.message });
-        alert(`Error deleting item: ${error.message}`);
+      let collection = null;
+      for (const [key, collectionName] of Object.entries(collectionMap)) {
+        const data = key === 'sweets' ? localSweets : key === 'ingredients' ? localIngredients : localKitchenware;
+        if (data.find(item => item.id === id)) {
+          collection = collectionName;
+          break;
+        }
       }
-    }
-  }, [activeTab, userData]);
 
-  if (firebaseError) {
-    return (
-      <div className="flex flex-col justify-center items-center h-screen bg-gray-50">
-        <div className="text-xl font-semibold text-red-600 mb-4">Connection Error</div>
-        <div className="text-gray-600 text-center max-w-md">
-          {firebaseError}
-        </div>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+      if (collection) {
+        await firestoreService.deleteDocument(collection, id, userData?.id);
+        toast.success('Item deletado com sucesso');
+        logger.info('Item deleted', { id, collection });
+      }
+    } catch (error) {
+      toast.error('Erro ao deletar item', error.message);
+      logger.error('Error deleting item', { error: error.message });
+    }
+  };
+
+  const handleSweetForm = async (formData) => {
+    setIsSubmitting(true);
+    try {
+      if (editingItem?.id) {
+        await firestoreService.updateDocument(
+          FIRESTORE_COLLECTIONS.SWEETS,
+          editingItem.id,
+          formData,
+          userData?.id
+        );
+        toast.success('Doce atualizado com sucesso');
+        logger.info('Sweet updated', { id: editingItem.id });
+      } else {
+        await firestoreService.addDocument(
+          FIRESTORE_COLLECTIONS.SWEETS,
+          formData,
+          userData?.id
+        );
+        toast.success('Doce adicionado com sucesso');
+        logger.info('Sweet added');
+      }
+      setCurrentPage('dashboard');
+      setEditingItem(null);
+    } catch (error) {
+      toast.error('Erro ao salvar doce', error.message);
+      logger.error('Error saving sweet', { error: error.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleIngredientForm = async (formData) => {
+    setIsSubmitting(true);
+    try {
+      if (editingItem?.id) {
+        await firestoreService.updateDocument(
+          FIRESTORE_COLLECTIONS.INGREDIENTS,
+          editingItem.id,
+          formData,
+          userData?.id
+        );
+        toast.success('Ingrediente atualizado com sucesso');
+        logger.info('Ingredient updated', { id: editingItem.id });
+      } else {
+        await firestoreService.addDocument(
+          FIRESTORE_COLLECTIONS.INGREDIENTS,
+          formData,
+          userData?.id
+        );
+        toast.success('Ingrediente adicionado com sucesso');
+        logger.info('Ingredient added');
+      }
+      setCurrentPage('dashboard');
+      setEditingItem(null);
+    } catch (error) {
+      toast.error('Erro ao salvar ingrediente', error.message);
+      logger.error('Error saving ingredient', { error: error.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleKitchenwareForm = async (formData) => {
+    setIsSubmitting(true);
+    try {
+      if (editingItem?.id) {
+        await firestoreService.updateDocument(
+          FIRESTORE_COLLECTIONS.KITCHENWARE,
+          editingItem.id,
+          formData,
+          userData?.id
+        );
+        toast.success('Utensilio atualizado com sucesso');
+        logger.info('Kitchenware updated', { id: editingItem.id });
+      } else {
+        await firestoreService.addDocument(
+          FIRESTORE_COLLECTIONS.KITCHENWARE,
+          formData,
+          userData?.id
+        );
+        toast.success('Utensilio adicionado com sucesso');
+        logger.info('Kitchenware added');
+      }
+      setCurrentPage('dashboard');
+      setEditingItem(null);
+    } catch (error) {
+      toast.error('Erro ao salvar utensilio', error.message);
+      logger.error('Error saving kitchenware', { error: error.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
-    return <LoadingPage message="Loading Firebase data" submessage="Connecting to database" />;
+    return <LoadingPage message="Iniciando aplicacao" submessage="Carregando configuracoes" />;
   }
 
-  const renderPage = () => {
-    if (!isAuthenticated) {
-      switch (currentPage) {
-        case 'register':
-          return <RegisterPage onNavigate={handleNavigate} onRegister={handleRegister} />;
-        default:
-          return <LoginPage onNavigate={handleNavigate} onLogin={handleLogin} />;
-      }
-    }
+  const isAuthenticated = !!userData;
 
-    let pageComponent;
-    switch (currentPage) {
-      case 'add-sweet':
-        pageComponent = (
-          <SweetForm
-            onSubmit={handleAddSweet}
-            onCancel={() => handleNavigate('dashboard')}
-            pageTitle="Adicionar Novo Doce"
-            buttonText={isSubmitting ? "Adicionando..." : "Adicionar"}
-            isSubmitting={isSubmitting}
-            ingredients={ingredients}
-          />
-        );
-        break;
-      case 'edit-sweet':
-        pageComponent = (
-          <SweetForm
-            onSubmit={handleEditSweet}
-            onCancel={() => handleNavigate('dashboard')}
-            initialData={editingSweet}
-            pageTitle="Editar Doce"
-            buttonText={isSubmitting ? "Salvando..." : "Salvar Alterações"}
-            isSubmitting={isSubmitting}
-            ingredients={ingredients}
-          />
-        );
-        break;
-      case 'add-ingredient':
-        pageComponent = (
-          <IngredientForm
-            onSubmit={handleAddIngredient}
-            onCancel={() => handleNavigate('dashboard')}
-            pageTitle="Adicionar Ingrediente"
-            buttonText="Adicionar"
-          />
-        );
-        break;
-      case 'edit-ingredient':
-        pageComponent = (
-          <IngredientForm
-            onSubmit={handleEditIngredient}
-            onCancel={() => handleNavigate('dashboard')}
-            initialData={editingIngredient}
-            pageTitle="Editar Ingrediente"
-            buttonText="Salvar Alterações"
-          />
-        );
-        break;
-      case 'add-utensil':
-        pageComponent = (
-          <KitchenwareForm
-            onSubmit={handleAddUtensil}
-            onCancel={() => handleNavigate('dashboard')}
-            pageTitle="Adicionar Utensílio"
-            buttonText="Adicionar"
-          />
-        );
-        break;
-      case 'edit-utensil':
-        pageComponent = (
-          <KitchenwareForm
-            onSubmit={handleEditUtensil}
-            onCancel={() => handleNavigate('dashboard')}
-            initialData={editingUtensil}
-            pageTitle="Editar Utensílio"
-            buttonText="Salvar"
-          />
-        );
-        break;
-      case 'pdv':
-        pageComponent = <PDVPage sweets={sweets} onNavigate={handleNavigate} userData={userData} />;
-        break;
-      case 'finance':
-        pageComponent = <FinancePage sweets={sweets} ingredients={ingredients} recipes={recipes} sales={sales} />;
-        break;
-      default:
-        pageComponent = (
-          <DashboardPage
-            onNavigate={handleNavigate}
-            sweets={sweets}
-            setSweets={() => {}}
-            ingredients={ingredients}
-            setIngredients={() => {}}
-            utensils={utensils}
-            setUtensils={() => {}}
-            userData={userData}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onDelete={handleDelete}
-          />
-        );
-        break;
-    }
-
-    return (
+  return (
+    <ErrorBoundary>
       <div className="flex flex-col min-h-screen bg-gray-50">
-        <Header onLogout={handleLogout} onNavigate={handleNavigate} userData={userData} currentPage={currentPage} />
-        <main className="w-full flex-grow">{pageComponent}</main>
-        <Footer />
-      </div>
-    );
-  };
+        {isAuthenticated && <Header onLogout={handleLogout} onNavigate={handleNavigate} currentPage={currentPage} sweets={localSweets} ingredients={localIngredients} kitchenware={localKitchenware} sales={sales} userData={userData} />}
+        
+        <OfflineIndicator onSyncComplete={() => toast.success('Dados sincronizados')} />
 
-  return <>{renderPage()}</>;
-}
+        <main className="flex-grow">
+          <AnimatePresence mode="wait">
+            {!isAuthenticated ? (
+              currentPage === 'login' ? (
+                <motion.div key="login" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                  <LoginPage onLogin={handleLogin} onNavigate={handleNavigate} />
+                </motion.div>
+              ) : (
+                <motion.div key="register" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                  <RegisterPage onRegister={handleRegister} onNavigate={handleNavigate} />
+                </motion.div>
+              )
+            ) : currentPage === 'dashboard' ? (
+              <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <DashboardPage onNavigate={handleNavigate} sweets={localSweets} setSweets={setLocalSweets} ingredients={localIngredients} setIngredients={setLocalIngredients} utensils={localKitchenware} setUtensils={setLocalKitchenware} userData={userData} activeTab={activeTab} onTabChange={setActiveTab} onDelete={handleDelete} />
+              </motion.div>
+            ) : currentPage === 'add-sweet' || currentPage === 'edit-sweet' ? (
+              <motion.div key="sweet-form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <SweetForm onSubmit={handleSweetForm} onCancel={() => { setCurrentPage('dashboard'); setEditingItem(null); }} initialData={editingItem} pageTitle={editingItem ? 'Editar Doce' : 'Adicionar Novo Doce'} buttonText={editingItem ? 'Atualizar' : 'Adicionar'} isSubmitting={isSubmitting} />
+              </motion.div>
+            ) : currentPage === 'add-ingredient' || currentPage === 'edit-ingredient' ? (
+              <motion.div key="ingredient-form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <IngredientForm onSubmit={handleIngredientForm} onCancel={() => { setCurrentPage('dashboard'); setEditingItem(null); }} initialData={editingItem} pageTitle={editingItem ? 'Editar Ingrediente' : 'Adicionar Novo Ingrediente'} buttonText={editingItem ? 'Atualizar' : 'Adicionar'} />
+              </motion.div>
+            ) : currentPage === 'add-utensil' || currentPage === 'edit-utensil' ? (
+              <motion.div key="utensil-form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <KitchenwareForm onSubmit={handleKitchenwareForm} onCancel={() => { setCurrentPage('dashboard'); setEditingItem(null); }} initialData={editingItem} pageTitle={editingItem ? 'Editar Utensilio' : 'Adicionar Novo Utensilio'} buttonText={editingItem ? 'Atualizar' : 'Adicionar'} />
+              </motion.div>
+            ) : currentPage === 'finance' ? (
+              <motion.div key="finance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <FinancePage sweetsExternal={localSweets} salesExternal={sales} ingredientsExternal={localIngredients} recipesExternal={recipes} />
+              </motion.div>
+            ) : currentPage === 'reports' ? (
+              <motion.div key="reports" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <ReportsPage sweetsExternal={localSweets} salesExternal={sales} ingredientsExternal={localIngredients} recipesExternal={recipes} />
+              </motion.div>
+            ) : currentPage === 'pdv' ? (
+              <motion.div key="pdv" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <PDVPage sweets={localSweets} onNavigate={handleNavigate} userData={userData} />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </main>
+
+        {isAuthenticated && <Footer />}
+      </div>
+    </ErrorBoundary>
+  );
+};
+
+export default App;

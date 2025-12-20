@@ -11,6 +11,7 @@
 [![Status](https://img.shields.io/badge/Status-Partial%20abandonment-yellow?style=for-the-badge)](https://github.com)
 
 **⚠️ Note:** _Experimental codebase with some unsafe patterns. Production use requires security hardening and refactoring._
+**⚠️ Note:**_Slowly implementing an api key system._
 
 ---
 
@@ -92,9 +93,16 @@ A **full-stack confectionery management system** combining:
 ## ✨ Key Features
 
 ### 📦 Inventory Management
-- **Sweets**: Stock, pricing, expiry (color-coded), images, observations
-- **Ingredients**: Purchase date, unit conversion, auto-calculated costs, expiry tracking
-- **Kitchenware**: Quantity, condition badges, observations
+- **Sweets**: Stock, pricing, expiry (color-coded), images, **observations modal**
+- **Ingredients**: Purchase date, unit conversion, auto-calculated costs, expiry tracking, **observations**
+- **Kitchenware**: Quantity, condition badges, **observations**
+
+### 💡 Observations System
+- **Hover-activated tooltip**: Appears on (i) icon hover
+- **Click-outside to close**: Modal closes when clicking outside or pressing ESC
+- **150-character limit**: Real-time counter with paste validation
+- **Editable inline**: Save observations without leaving the page
+- **Compact design**: Positioned near icon with arrow indicator
 
 ### 💳 Point of Sale
 - Real-time cart with Framer Motion animations

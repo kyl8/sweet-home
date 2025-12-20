@@ -1,16 +1,19 @@
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+export const API_ENDPOINTS = {
+  BASE_URL: API_BASE_URL,
+  LOGIN: `${API_BASE_URL}/api/auth/login`,
+  REGISTER: `${API_BASE_URL}/api/auth/register`,
+  DASHBOARD: `${API_BASE_URL}/api/auth/dashboard`,
+  LOGOUT: `${API_BASE_URL}/api/auth/logout`,
+  REFRESH: `${API_BASE_URL}/api/auth/refresh`,
+  SALES_FINISH: `${API_BASE_URL}/api/sales/finish`
+};
+
 export const FIRESTORE_COLLECTIONS = {
   SWEETS: 'sweets',
   INGREDIENTS: 'ingredients',
-  RECIPES: 'recipes',
   KITCHENWARE: 'kitchenware',
   SALES: 'sales',
-  TEST: 'test'
-};
-
-export const API_ENDPOINTS = {
-  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3001',
-  LOGIN: `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/login`,
-  REGISTER: `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/register`,
-  DASHBOARD: `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/dashboard`,
-  SALES_FINISH: `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/sales/finish`
+  RECIPES: 'recipes'
 };

@@ -2,12 +2,10 @@ import os
 from typing import Dict, List
 
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 def find_keys() -> List[str]:
-    """Find all PEM key files in .secret directory."""
     keys = []
     secret_path = os.path.join(current_dir, '.secret')
     
@@ -21,7 +19,6 @@ def find_keys() -> List[str]:
     return keys
 
 def identify_valid_keys(key_array: List[str]) -> Dict[str, object]:
-    """Verify and identify valid private and public keys from file paths."""
     valid_key_paths = {}
     
     for key_path in key_array:
@@ -29,14 +26,18 @@ def identify_valid_keys(key_array: List[str]) -> Dict[str, object]:
             with open(key_path, 'rb') as key_file:
                 key = serialization.load_pem_private_key(
                     key_file.read(),
-                    password=None,
+                    password=None
                 )
             valid_key_paths["private_key"] = key
         except ValueError:
-            valid_key_paths["public_key"] = key
-            continue
+            try:
+                with open(key_path, 'rb') as key_file:
+                    key = serialization.load_pem_public_key(key_file.read())
+                valid_key_paths["public_key"] = key
+            except Exception:
+                continue
         except (FileNotFoundError, TypeError):
-            print(f"Error opening or reading key: {key_path}")
+            print(f"Erro ao abrir ou ler a chave: {key_path}")
             continue
 
     return valid_key_paths

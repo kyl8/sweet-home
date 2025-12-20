@@ -3,7 +3,7 @@ import { logger } from '../utils/logger';
 
 export const useToast = () => {
   const showSuccess = (title, message = '', duration = 3000) => {
-    logger.info(`Toast Success: ${title}`);
+    logger.info(`Toast sucesso: ${title}`);
     return Swal.fire({
       icon: 'success',
       title,
@@ -23,7 +23,7 @@ export const useToast = () => {
   };
 
   const showError = (title, message = '', duration = 4000) => {
-    logger.warn(`Toast Error: ${title} - ${message}`);
+    logger.warn(`Toast erro: ${title}`);
     return Swal.fire({
       icon: 'error',
       title,
@@ -43,7 +43,7 @@ export const useToast = () => {
   };
 
   const showWarning = (title, message = '', duration = 3500) => {
-    logger.warn(`Toast Warning: ${title}`);
+    logger.warn(`Toast aviso: ${title}`);
     return Swal.fire({
       icon: 'warning',
       title,
@@ -63,7 +63,7 @@ export const useToast = () => {
   };
 
   const showInfo = (title, message = '', duration = 3000) => {
-    logger.info(`Toast Info: ${title}`);
+    logger.info(`Toast info: ${title}`);
     return Swal.fire({
       icon: 'info',
       title,

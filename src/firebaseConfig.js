@@ -1,5 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 import { logger } from "./utils/logger";
 
 const firebaseConfig = {
@@ -9,14 +11,26 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-if (!firebaseConfig.projectId) {
-  throw new Error("Firebase configuration is incomplete. Please check your .env.local file.");
+let app;
+let db;
+
+try {
+  if (!firebaseConfig.projectId || !firebaseConfig.apiKey) {
+    throw new Error("Configuração Firebase incompleta (.env.local ausente ou inválido)");
+  }
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  logger.info("Firebase inicializado");
+} catch (e) {
+  logger.error("Falha ao inicializar Firebase", { error: e.message });
+  db = null;
 }
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export { db };
+export const auth = getAuth(app);
+export const storage = getStorage(app);
 
-logger.info("Firebase initialized successfully");
+export default app;

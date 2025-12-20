@@ -5,11 +5,152 @@ import { useFirestore } from '../hooks/useFirestore';
 import { FIRESTORE_COLLECTIONS } from '../constants/firebaseCollections';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { logger } from '../utils/logger';
+import EmptyState from '../components/EmptyState';
 
 const FinancePage = () => {
   const { data: sweets, loading: sweetsLoading, error: sweetsError } = useFirestore(FIRESTORE_COLLECTIONS.SWEETS);
   const { data: ingredients, loading: ingredientsLoading, error: ingredientsError } = useFirestore(FIRESTORE_COLLECTIONS.INGREDIENTS);
   const { data: recipes, loading: recipesLoading, error: recipesError } = useFirestore(FIRESTORE_COLLECTIONS.RECIPES);
+
+  const sweetsArr = Array.isArray(sweets) ? sweets : [];
+  const ingredientsArr = Array.isArray(ingredients) ? ingredients : [];
+  const recipesArr = Array.isArray(recipes) ? recipes : [];
+
+  const [ingredientsPage, setIngredientsPage] = React.useState(1);
+  const [profitPage, setProfitPage] = React.useState(1);
+  const [ingredientsSearch, setIngredientsSearch] = React.useState('');
+  const [profitSearch, setProfitSearch] = React.useState('');
+  const [debouncedIngSearch, setDebouncedIngSearch] = React.useState('');
+  const [debouncedProfitSearch, setDebouncedProfitSearch] = React.useState('');
+
+  const deferredIngSearch = React.useDeferredValue(debouncedIngSearch);
+  const deferredProfitSearch = React.useDeferredValue(debouncedProfitSearch);
+  const [isPendingIng, startTransitionIng] = React.useTransition();
+  const [isPendingProfit, startTransitionProfit] = React.useTransition();
+
+  const ingredientFinancialData = React.useMemo(() => {
+    return ingredientsArr.map(ingredient => {
+      const totalStockInBaseUnit = Number(ingredient.stockInBaseUnit || 0);
+      const costPerBaseUnit = Number(ingredient.costPerBaseUnit || 0);
+      const totalStockValue = totalStockInBaseUnit * costPerBaseUnit;
+      return {
+        name: ingredient.name,
+        brand: ingredient.brand,
+        totalStock: totalStockInBaseUnit,
+        baseUnit: ingredient.baseUnit,
+        stockValue: totalStockValue,
+        cost: costPerBaseUnit,
+      };
+    });
+  }, [ingredientsArr]);
+
+  const profitabilityData = React.useMemo(() => {
+    return sweetsArr.map(sweet => {
+      const productionCost = costCalculationService.calculateSweetCost(sweet, recipesArr, ingredientsArr);
+      const profit = costCalculationService.calculateProfit(Number(sweet.price || 0), productionCost);
+      const margin = costCalculationService.calculateProfitMargin(Number(sweet.price || 0), productionCost);
+      return {
+        name: sweet.name,
+        price: Number(sweet.price || 0),
+        cost: productionCost,
+        profit,
+        margin,
+      };
+    });
+  }, [sweetsArr, recipesArr, ingredientsArr]);
+
+  const normalize = (s) =>
+    (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  const filteredIngredients = React.useMemo(() => {
+    if (!deferredIngSearch.trim()) return ingredientFinancialData;
+    const q = normalize(deferredIngSearch);
+    return ingredientFinancialData.filter(d =>
+      normalize(d.name).includes(q) || normalize(d.brand).includes(q)
+    );
+  }, [ingredientFinancialData, deferredIngSearch]);
+
+  const filteredProfitability = React.useMemo(() => {
+    if (!deferredProfitSearch.trim()) return profitabilityData;
+    const q = normalize(deferredProfitSearch);
+    return profitabilityData.filter(d => normalize(d.name).includes(q));
+  }, [profitabilityData, deferredProfitSearch]);
+
+  const pagedIngredients = React.useMemo(() => {
+    const PAGE_SIZE = 10;
+    const start = (ingredientsPage - 1) * PAGE_SIZE;
+    const slice = filteredIngredients.slice(start, start + PAGE_SIZE);
+    return slice.map(d => ({
+      ...d,
+      _totalStockFmt: `${Number(d.totalStock).toFixed(2)} ${d.baseUnit}`,
+      _stockValueFmt: `R$ ${Number(d.stockValue).toFixed(2)}`,
+      _costFmt: `R$ ${Number(d.cost).toFixed(5)} / ${d.baseUnit}`
+    }));
+  }, [filteredIngredients, ingredientsPage]);
+
+  const pagedProfitability = React.useMemo(() => {
+    const PAGE_SIZE = 10;
+    const start = (profitPage - 1) * PAGE_SIZE;
+    const slice = filteredProfitability.slice(start, start + PAGE_SIZE);
+    return slice.map(d => ({
+      ...d,
+      _priceFmt: `R$ ${Number(d.price).toFixed(2)}`,
+      _costFmt: `R$ ${Number(d.cost).toFixed(2)}`,
+      _profitFmt: `R$ ${Number(d.profit).toFixed(2)}`,
+      _marginFmt: `${Number(d.margin).toFixed(1)}%`,
+      _isPositive: Number(d.profit) >= 0
+    }));
+  }, [filteredProfitability, profitPage]);
+
+  const totalSweets = sweetsArr.length;
+  const totalRecipes = recipesArr.length;
+  const totalIngredients = ingredientsArr.length;
+  const totalInventoryValue = React.useMemo(() => {
+    return ingredientFinancialData.reduce((sum, ing) => sum + Number(ing.stockValue || 0), 0);
+  }, [ingredientFinancialData]);
+
+  const averageProfit = React.useMemo(() => {
+    if (profitabilityData.length === 0) return 0;
+    const validProfits = profitabilityData
+      .map(item => Number(item.profit || 0))
+      .filter(profit => !isNaN(profit));
+    if (validProfits.length === 0) return 0;
+    const sum = validProfits.reduce((acc, profit) => acc + profit, 0);
+    const avg = sum / validProfits.length;
+    return isNaN(avg) ? 0 : avg;
+  }, [profitabilityData]);
+
+  const ingredientsTotalPages = React.useMemo(() => {
+    const PAGE_SIZE = 10;
+    return Math.max(1, Math.ceil(filteredIngredients.length / PAGE_SIZE));
+  }, [filteredIngredients.length]);
+
+  const profitTotalPages = React.useMemo(() => {
+    const PAGE_SIZE = 10;
+    return Math.max(1, Math.ceil(filteredProfitability.length / PAGE_SIZE));
+  }, [filteredProfitability.length]);
+
+  React.useEffect(() => {
+    const t = setTimeout(() => {
+      startTransitionIng(() => setDebouncedIngSearch(ingredientsSearch));
+    }, 200);
+    return () => clearTimeout(t);
+  }, [ingredientsSearch]);
+
+  React.useEffect(() => {
+    const t = setTimeout(() => {
+      startTransitionProfit(() => setDebouncedProfitSearch(profitSearch));
+    }, 200);
+    return () => clearTimeout(t);
+  }, [profitSearch]);
+
+  React.useEffect(() => {
+    setIngredientsPage(1);
+  }, [deferredIngSearch, filteredIngredients.length]);
+
+  React.useEffect(() => {
+    setProfitPage(1);
+  }, [deferredProfitSearch, filteredProfitability.length]);
 
   const isLoading = sweetsLoading || ingredientsLoading || recipesLoading;
   const hasError = sweetsError || ingredientsError || recipesError;
@@ -45,42 +186,58 @@ const FinancePage = () => {
     );
   }
 
-  const ingredientFinancialData = ingredients.map(ingredient => {
-    const totalStockInBaseUnit = ingredient.stockInBaseUnit || 0;
-    const costPerBaseUnit = ingredient.costPerBaseUnit || 0;
-    const totalStockValue = totalStockInBaseUnit * costPerBaseUnit;
+  const hasNoData = totalSweets === 0 && totalIngredients === 0 && totalRecipes === 0;
 
-    return {
-      name: ingredient.name,
-      brand: ingredient.brand,
-      totalStock: totalStockInBaseUnit,
-      baseUnit: ingredient.baseUnit,
-      stockValue: totalStockValue,
-      cost: costPerBaseUnit,
-    };
-  });
+  if (hasNoData) {
+    return (
+      <div className="container mx-auto p-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4 sm:mb-0">Painel Financeiro</h1>
+        </div>
+        <EmptyState
+          message="Nenhum dado financeiro disponível"
+          buttonText="Ir para Dashboard"
+          onButtonClick={() => window.location.href = '/'}
+        />
+      </div>
+    );
+  }
 
-  const profitabilityData = sweets.map(sweet => {
-    const productionCost = costCalculationService.calculateSweetCost(sweet, recipes, ingredients);
-    const profit = costCalculationService.calculateProfit(sweet.price, productionCost);
-    const margin = costCalculationService.calculateProfitMargin(sweet.price, productionCost);
+  const PAGE_SIZE = 10;
+  const Pager = ({ current, total, onChange }) => {
+    const pages = React.useMemo(() => Array.from({ length: total }, (_, i) => i + 1), [total]);
+    return (
+      <div className="flex items-center gap-2 mt-4">
+        <button onClick={() => onChange(Math.max(1, current - 1))} disabled={current === 1} className="px-3 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50">←</button>
+        {pages.map(p => (
+          <button key={p} onClick={() => onChange(p)} className={`px-3 py-2 rounded-lg ${p === current ? 'bg-pink-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>{p}</button>
+        ))}
+        <button onClick={() => onChange(Math.min(total, current + 1))} disabled={current === total} className="px-3 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50">→</button>
+      </div>
+    );
+  };
 
-    return {
-      name: sweet.name,
-      price: sweet.price,
-      cost: productionCost,
-      profit,
-      margin,
-    };
-  });
+  const IngredientRow = React.memo(({ data }) => (
+    <tr className="border-b hover:bg-gray-50 transition-colors">
+      <td className="py-3 px-4 font-semibold">
+        {data.name}
+        {data.brand && <span className="block text-sm font-normal text-gray-500">{data.brand}</span>}
+      </td>
+      <td className="py-3 px-4 text-right">{data._totalStockFmt}</td>
+      <td className="py-3 px-4 text-right font-semibold">{data._stockValueFmt}</td>
+      <td className="py-3 px-4 text-right text-orange-600 font-semibold">{data._costFmt}</td>
+    </tr>
+  ));
 
-  const totalSweets = sweets.length;
-  const totalRecipes = recipes.length;
-  const totalIngredients = ingredients.length;
-  const totalInventoryValue = ingredientFinancialData.reduce((sum, ing) => sum + ing.stockValue, 0);
-  const averageProfit = profitabilityData.length > 0
-    ? profitabilityData.reduce((sum, item) => sum + item.profit, 0) / profitabilityData.length
-    : 0;
+  const ProfitRow = React.memo(({ data }) => (
+    <tr className="border-b hover:bg-gray-50 transition-colors">
+      <td className="py-3 px-4 font-semibold">{data.name}</td>
+      <td className="py-3 px-4 text-right text-blue-600 font-semibold">{data._priceFmt}</td>
+      <td className="py-3 px-4 text-right text-orange-600 font-semibold">{data._costFmt}</td>
+      <td className={`py-3 px-4 text-right font-bold ${data._isPositive ? 'text-green-600' : 'text-red-600'}`}>{data._profitFmt}</td>
+      <td className={`py-3 px-4 text-right font-bold ${data._isPositive ? 'text-green-600' : 'text-red-600'}`}>{data._marginFmt}</td>
+    </tr>
+  ));
 
   return (
     <ErrorBoundary>
@@ -112,10 +269,22 @@ const FinancePage = () => {
         </div>
 
         <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xl border border-indigo-100">
-          <h2 className="text-2xl font-bold text-gray-700 mb-6">Análise de Estoque de Ingredientes</h2>
-          <div className="bg-gradient-to-r from-indigo-100 to-indigo-200 p-6 rounded-xl mb-6">
-            <h3 className="text-lg font-bold text-indigo-800">Valor Total em Estoque</h3>
-            <p className="text-4xl font-bold text-indigo-700">R$ {totalInventoryValue.toFixed(2).replace('.', ',')}</p>
+          <h2 className="text-2xl font-bold text-gray-700 mb-3">Detalhamento de Ingredientes</h2>
+
+          <div className="flex items-center gap-3 mb-4">
+            <input
+              type="text"
+              value={ingredientsSearch}
+              onChange={(e) => setIngredientsSearch(e.target.value)}
+              placeholder="Buscar ingrediente por nome ou marca..."
+              className="w-full md:w-96 px-4 py-2 border-2 border-indigo-200 rounded-lg focus:outline-none focus:border-indigo-400"
+            />
+            {ingredientsSearch && (
+              <span className="text-xs text-gray-500">{filteredIngredients.length} resultado(s)</span>
+            )}
+            {isPendingIng && (
+              <span className="text-xs text-indigo-500 animate-pulse">filtrando...</span>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -129,24 +298,22 @@ const FinancePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {ingredientFinancialData.map((data, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4 font-semibold">
-                      {data.name}
-                      {data.brand && <span className="block text-sm font-normal text-gray-500">{data.brand}</span>}
-                    </td>
-                    <td className="py-3 px-4 text-right">{data.totalStock.toFixed(2)} {data.baseUnit}</td>
-                    <td className="py-3 px-4 text-right font-semibold">R$ {data.stockValue.toFixed(2)}</td>
-                    <td className="py-3 px-4 text-right text-orange-600 font-semibold">R$ {data.cost.toFixed(5)} / {data.baseUnit}</td>
-                  </tr>
+                {pagedIngredients.map((data, index) => (
+                  <IngredientRow key={`${data.name}-${index}`} data={data} />
                 ))}
               </tbody>
             </table>
           </div>
 
-          {ingredientFinancialData.length === 0 && (
+          {filteredIngredients.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              <p>Nenhum ingrediente cadastrado ainda.</p>
+              <p>Nenhum ingrediente corresponde à busca.</p>
+            </div>
+          )}
+
+          {ingredientsTotalPages > 1 && (
+            <div className="flex justify-end">
+              <Pager current={ingredientsPage} total={ingredientsTotalPages} onChange={setIngredientsPage} />
             </div>
           )}
         </div>
@@ -188,7 +355,24 @@ const FinancePage = () => {
         )}
 
         <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xl border border-pink-100">
-          <h2 className="text-2xl font-bold text-gray-700 mb-6">Análise de Lucratividade por Doce</h2>
+          <h2 className="text-2xl font-bold text-gray-700 mb-3">Análise de Lucratividade por Doce</h2>
+
+          <div className="flex items-center gap-3 mb-4">
+            <input
+              type="text"
+              value={profitSearch}
+              onChange={(e) => setProfitSearch(e.target.value)}
+              placeholder="Buscar doce por nome..."
+              className="w-full md:w-96 px-4 py-2 border-2 border-pink-200 rounded-lg focus:outline-none focus:border-pink-400"
+            />
+            {profitSearch && (
+              <span className="text-xs text-gray-500">{filteredProfitability.length} resultado(s)</span>
+            )}
+            {isPendingProfit && (
+              <span className="text-xs text-pink-500 animate-pulse">filtrando...</span>
+            )}
+          </div>
+
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white">
               <thead className="bg-gray-200">
@@ -201,26 +385,22 @@ const FinancePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {profitabilityData.map((data, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4 font-semibold">{data.name}</td>
-                    <td className="py-3 px-4 text-right text-blue-600 font-semibold">R$ {Number(data.price).toFixed(2)}</td>
-                    <td className="py-3 px-4 text-right text-orange-600 font-semibold">R$ {Number(data.cost).toFixed(2)}</td>
-                    <td className={`py-3 px-4 text-right font-bold ${data.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      R$ {Number(data.profit).toFixed(2)}
-                    </td>
-                    <td className={`py-3 px-4 text-right font-bold ${data.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {Number(data.margin).toFixed(1)}%
-                    </td>
-                  </tr>
+                {pagedProfitability.map((data, index) => (
+                  <ProfitRow key={`${data.name}-${index}`} data={data} />
                 ))}
               </tbody>
             </table>
           </div>
 
-          {profitabilityData.length === 0 && (
+          {filteredProfitability.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              <p>Nenhum doce cadastrado ainda.</p>
+              <p>Nenhum doce corresponde à busca.</p>
+            </div>
+          )}
+
+          {profitTotalPages > 1 && (
+            <div className="flex justify-end">
+              <Pager current={profitPage} total={profitTotalPages} onChange={setProfitPage} />
             </div>
           )}
         </div>

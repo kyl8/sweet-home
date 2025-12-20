@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { validators } from '../utils/validators';
 import { sanitizeInput } from '../utils/sanitizer';
 import { logger } from '../utils/logger';
-import ObservationsModal from '../components/modals/ObservationsModal';
 
 const SweetForm = ({ onSubmit, onCancel, initialData, pageTitle, buttonText, isSubmitting }) => {
   const [sweet, setSweet] = useState({
@@ -16,15 +15,19 @@ const SweetForm = ({ onSubmit, onCancel, initialData, pageTitle, buttonText, isS
     observations: ''
   });
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
       setSweet({
-        ...initialData,
+        id: initialData.id,
+        name: initialData.name || '',
         unitName: initialData.unitName || 'unidade',
         unitWeight: initialData.unitWeight || '',
+        stock: initialData.stock || '',
+        price: initialData.price || '',
+        expiry_date: initialData.expiry_date || '',
+        image: initialData.image || '',
         observations: initialData.observations || ''
       });
     }
@@ -67,10 +70,6 @@ const SweetForm = ({ onSubmit, onCancel, initialData, pageTitle, buttonText, isS
     }
   };
 
-  const handleSaveObservations = (text) => {
-    setSweet(prev => ({ ...prev, observations: text }));
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -80,18 +79,26 @@ const SweetForm = ({ onSubmit, onCancel, initialData, pageTitle, buttonText, isS
 
     try {
       const sweetData = {
-        ...sweet,
+        id: sweet.id,
         name: sanitizeInput(sweet.name),
         stock: parseInt(sweet.stock, 10),
         price: parseFloat(sweet.price),
-        unitWeight: parseFloat(sweet.unitWeight) || 0
+        unitWeight: parseFloat(sweet.unitWeight) || 0,
+        unitName: sweet.unitName,
+        expiry_date: sweet.expiry_date,
+        image: sweet.image,
+        observations: sweet.observations || ''
       };
 
+      logger.info('Enviando doce com observações', { observations: sweetData.observations });
       onSubmit(sweetData);
     } catch (error) {
       logger.error('Erro ao enviar o formulário do doce', { error: error.message });
     }
   };
+
+  const MAX_LEN = 150;
+  const remaining = Math.max(0, MAX_LEN - (sweet.observations?.length || 0));
 
   return (
     <div className="max-w-2xl mx-auto mt-10 p-8 bg-white rounded-xl shadow-lg">
@@ -186,19 +193,23 @@ const SweetForm = ({ onSubmit, onCancel, initialData, pageTitle, buttonText, isS
         </div>
 
         <div>
-          <label className="block text-gray-700 font-bold mb-2">Observações</label>
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
+          <label className="block text-gray-700 font-bold mb-2" htmlFor="observations">
+            Observações
+          </label>
+          <input
+            type="text"
+            id="observations"
+            name="observations"
+            value={sweet.observations}
+            onChange={handleChange}
             disabled={isSubmitting}
-            className={`w-full text-left py-3 px-4 rounded-lg transition duration-300 ${
-              sweet.observations
-                ? 'bg-pink-100 hover:bg-pink-200 text-pink-800'
-                : 'bg-gray-100 hover:bg-gray-200'
-            }`}
-          >
-            {sweet.observations ? 'Ver/Editar Observações' : 'Adicionar Observações'}
-          </button>
+            maxLength={MAX_LEN}
+            placeholder="Sem glúten, vegano, etc..."
+            className="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
+          />
+          <p className="text-sm text-gray-500 mt-1">
+            {sweet.observations.length}/{MAX_LEN} caracteres • restam {remaining}
+          </p>
         </div>
 
         <div className="flex items-center justify-end space-x-4 pt-4">
@@ -219,14 +230,6 @@ const SweetForm = ({ onSubmit, onCancel, initialData, pageTitle, buttonText, isS
           </button>
         </div>
       </form>
-
-      {isModalOpen && (
-        <ObservationsModal
-          initialText={sweet.observations}
-          onSave={handleSaveObservations}
-          onClose={() => setIsModalOpen(false)}
-        />
-      )}
     </div>
   );
 };

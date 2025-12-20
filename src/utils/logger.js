@@ -29,28 +29,60 @@ const formatMessage = (level, message, data) => {
 
 const shouldLog = (level) => level >= getCurrentLogLevel();
 
+const isDevelopment = import.meta.env.MODE === 'development';
+
+const sanitizeForLogging = (message, data = {}) => {
+  const sanitized = {};
+  
+  const sensitiveKeys = [
+    'password', 'token', 'access_token', 'jwt', 'secret',
+    'apiKey', 'privateKey', 'publicKey', 'credential',
+    'ssn', 'creditCard', 'cvv', 'authorization'
+  ];
+
+  for (const [key, value] of Object.entries(data)) {
+    const keyLower = key.toLowerCase();
+    const isSensitive = sensitiveKeys.some(sensitive => keyLower.includes(sensitive));
+    
+    if (isSensitive) {
+      sanitized[key] = '[REDACTED]';
+    } else if (typeof value === 'string' && value.length > 200) {
+      sanitized[key] = value.substring(0, 100) + '...';
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeForLogging('', value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+
+  return sanitized;
+};
+
 export const logger = {
-  debug: (message, data) => {
-    if (shouldLog(LOG_LEVELS.DEBUG)) {
-      console.debug(formatMessage(LOG_LEVELS.DEBUG, message, data));
+  info: (message, data = {}) => {
+    const sanitized = sanitizeForLogging(message, data);
+    console.log(`[INFO] ${message}`, sanitized);
+  },
+
+  warn: (message, data = {}) => {
+    const sanitized = sanitizeForLogging(message, data);
+    console.warn(`[WARN] ${message}`, sanitized);
+  },
+
+  error: (message, data = {}) => {
+    const sanitized = sanitizeForLogging(message, data);
+    
+    if (isDevelopment) {
+      console.error(`[ERROR] ${message}`, sanitized);
+    } else {
+      console.error(`[ERROR] ${message}`);
     }
   },
-  
-  info: (message, data) => {
-    if (shouldLog(LOG_LEVELS.INFO)) {
-      console.info(formatMessage(LOG_LEVELS.INFO, message, data));
-    }
-  },
-  
-  warn: (message, data) => {
-    if (shouldLog(LOG_LEVELS.WARN)) {
-      console.warn(formatMessage(LOG_LEVELS.WARN, message, data));
-    }
-  },
-  
-  error: (message, data) => {
-    if (shouldLog(LOG_LEVELS.ERROR)) {
-      console.error(formatMessage(LOG_LEVELS.ERROR, message, data));
-    }
+
+  debug: (message, data = {}) => {
+    if (!isDevelopment) return;
+    
+    const sanitized = sanitizeForLogging(message, data);
+    console.debug(`[DEBUG] ${message}`, sanitized);
   }
 };

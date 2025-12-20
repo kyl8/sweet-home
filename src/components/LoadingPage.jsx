@@ -110,12 +110,10 @@ export const GlassLoadingPage = ({ message = "Preparando tudo para você" }) => 
   );
 };
 
-// Minimalist Professional Loading
 export const MinimalLoadingPage = ({ message = "Carregando dados" }) => {
   return (
     <div className="flex justify-center items-center h-screen bg-gray-50">
       <div className="text-center">
-        {/* Elegant Spinner */}
         <div className="relative mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg">
             <div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
@@ -127,7 +125,6 @@ export const MinimalLoadingPage = ({ message = "Carregando dados" }) => {
           Conectando ao servidor<span className="animate-pulse text-pink-500">...</span>
         </p>
         
-        {/* Animated Bars */}
         <div className="mt-6 flex justify-center">
           <div className="flex space-x-1">
             {[...Array(5)].map((_, i) => (

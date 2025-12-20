@@ -1,33 +1,33 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    exclude: ['firebase', 'firebase/app', 'firebase/firestore']
+  },
+  build: {
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          firebase: ['firebase/app', 'firebase/firestore'],
+          charts: ['recharts'],
+          ui: ['framer-motion', 'sweetalert2']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
+  },
   server: {
-    port: 3000, 
-    base: '/', 
-    host: 'localhost', 
-    open: true, 
-    cors: true, 
-    hmr: {
-      protocol: 'ws', 
-      host: 'localhost' 
-    }
-  },
-  proxy: {
-    '/api': {
-      target: 'http://localhost:3000',
-      changeOrigin: true,
-      rewrite: (path) => path.replace(/^\/api/, '')
-    }
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@components': path.resolve(__dirname, './src/components'),
-      '@pages': path.resolve(__dirname, './src/pages'),
-      '@styles': path.resolve(__dirname, './src/styles'),
-    }
+    port: 3000,
+    host: true
   }
 });

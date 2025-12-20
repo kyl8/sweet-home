@@ -54,3 +54,5 @@ __pycache__/
 # Trash
 comprovante/
 barcodes/
+d.py
+populated_data.csv

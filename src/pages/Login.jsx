@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { API_ENDPOINTS } from '../constants/firebaseCollections';
-import { ADMIN_CREDENTIALS, isDevelopment } from '../constants/authConfig';
+import { isDevelopment } from '../constants/authConfig';
 import { validators } from '../utils/validators';
 import { logger } from '../utils/logger';
 import { sanitizeInput } from '../utils/sanitizer';
@@ -15,27 +15,8 @@ const LoginPage = ({ onLogin, onNavigate }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
-  const validateForm = () => {
-    const errors = {};
-
-    if (!username.trim()) {
-      errors.username = 'Usuário é obrigatório';
-    } else if (!validators.isValidUsername(username)) {
-      errors.username = 'O usuário deve ter entre 3 e 50 caracteres';
-    }
-    
-    if (!password) {
-      errors.password = 'Senha é obrigatória';
-    } else if (!validators.isValidPassword(password)) {
-      errors.password = 'A senha deve ter pelo menos 6 caracteres';
-    }
-    
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
   const handleAdminLogin = () => {
-    logger.info('Login de administrador detectado (modo desenvolvimento)');
+    logger.info('Login de administrador detectado');
     const adminData = {
       access_token: 'admin_dev_token_' + Date.now(),
       user: {
@@ -57,10 +38,9 @@ const LoginPage = ({ onLogin, onNavigate }) => {
       return;
     }
 
-    const sanitizedUsername = sanitizeInput(username);
-    const sanitizedPassword = sanitizeInput(password);
+    const sanitizedUsername = sanitizeInput(username, { maxLength: 50 });
 
-    if (isDevelopment && sanitizedUsername === ADMIN_CREDENTIALS.username && sanitizedPassword === ADMIN_CREDENTIALS.password) {
+    if (isDevelopment && sanitizedUsername === 'admin' && password === 'admin123') {
       handleAdminLogin();
       return;
     }
@@ -68,13 +48,13 @@ const LoginPage = ({ onLogin, onNavigate }) => {
     setIsLoading(true);
     
     try {
-      const data = await authService.login(sanitizedUsername, sanitizedPassword);
+      const data = await authService.login(sanitizedUsername, password);
 
       sessionStorage.setItem('jwt_token', data.access_token);
       sessionStorage.setItem('userData', JSON.stringify(data.user));
       
       logger.info('Login bem-sucedido');
-      toast.success('Bem-vindo!', `Login realizado com sucesso`);
+      toast.success('Bem-vindo!', 'Login realizado com sucesso');
       onLogin(data);
 
     } catch (err) {
@@ -85,23 +65,42 @@ const LoginPage = ({ onLogin, onNavigate }) => {
     }
   };
 
+  const validateForm = () => {
+    const errors = {};
+
+    if (!username.trim()) {
+      errors.username = 'Usuario e obrigatorio';
+    } else if (!validators.isValidUsername(username)) {
+      errors.username = 'O usuario deve ter entre 3 e 50 caracteres';
+    }
+    
+    if (!password) {
+      errors.password = 'Senha e obrigatoria';
+    } else if (username !== 'admin' && !validators.isValidPassword(password)) {
+      errors.password = 'A senha deve ter: 8+ chars, maiuscula, minuscula, numero e caractere especial';
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   return (
     <div className="auth-container">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 m-4">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">Bem-vindo</h2>
-        <p className="text-center text-gray-500 mb-8">Faça login para continuar</p>
+        <p className="text-center text-gray-500 mb-8">Faca login para continuar</p>
         
         {isDevelopment && (
           <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-6 text-sm">
             <p className="font-semibold">Modo Desenvolvedor</p>
-            <p>Use <code className="bg-blue-100 px-2 py-1 rounded">admin</code> / <code className="bg-blue-100 px-2 py-1 rounded">admin123</code></p>
+            <p>Use admin / admin123</p>
           </div>
         )}
         
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
-              Nome de usuário
+              Nome de usuario
             </label>
             <input
               id="username"
@@ -117,7 +116,9 @@ const LoginPage = ({ onLogin, onNavigate }) => {
               className={`shadow-inner appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
                 validationErrors.username ? 'border-red-500 focus:ring-red-400' : 'focus:ring-pink-400'
               }`}
-              placeholder="Usuariomuitolegal123"
+              placeholder="Usuário"
+              autoComplete="username"
+              maxLength="50"
             />
             {validationErrors.username && (
               <p className="text-red-500 text-sm mt-1">{validationErrors.username}</p>
@@ -142,7 +143,9 @@ const LoginPage = ({ onLogin, onNavigate }) => {
               className={`shadow-inner appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
                 validationErrors.password ? 'border-red-500 focus:ring-red-400' : 'focus:ring-pink-400'
               }`}
-              placeholder="Senhamuitodificil321"
+              placeholder="Senha"
+              autoComplete="current-password"
+              maxLength="256"
             />
             {validationErrors.password && (
               <p className="text-red-500 text-sm mt-1">{validationErrors.password}</p>
@@ -159,7 +162,7 @@ const LoginPage = ({ onLogin, onNavigate }) => {
         </form>
 
         <p className="text-center text-gray-600 mt-6">
-          Não tem conta?{' '}
+          Nao tem conta? {' '}
           <button
             type="button"
             onClick={() => onNavigate('register')}

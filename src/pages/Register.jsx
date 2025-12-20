@@ -4,8 +4,10 @@ import { validators } from '../utils/validators';
 import { logger } from '../utils/logger';
 import { sanitizeInput } from '../utils/sanitizer';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
+import { useToast } from '../hooks/useToast';
 
 const RegisterPage = ({ onRegister, onNavigate }) => {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -30,11 +32,6 @@ const RegisterPage = ({ onRegister, onNavigate }) => {
       newErrors.email = 'Formato de email inválido';
     }
 
-    if (!formData.password) {
-      newErrors.password = 'Senha é obrigatória';
-    } else if (!validators.isValidPassword(formData.password)) {
-      newErrors.password = 'A senha deve ter pelo menos 6 caracteres';
-    }
 
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'As senhas não coincidem';
@@ -65,8 +62,8 @@ const RegisterPage = ({ onRegister, onNavigate }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: sanitizeInput(formData.username),
-          email: sanitizeInput(formData.email),
-          password: formData.password,
+          email: formData.email,
+          password: formData.password, 
           confirmPassword: formData.confirmPassword
         }),
         credentials: 'include'
@@ -80,10 +77,14 @@ const RegisterPage = ({ onRegister, onNavigate }) => {
         logger.warn('Falha no registro', { status: response.status });
         return;
       }
-
-      logger.info('Registro bem-sucedido');
-      onRegister(data);
-
+      else {
+        logger.info('Registro bem-sucedido');
+        onRegister(data);
+        toast.success('Registro bem-sucedido! Entre para logar.');
+        onNavigate('login');
+        return;
+      }
+      
     } catch (error) {
       setErrors({ submit: 'Erro de rede ou servidor indisponível' });
       logger.error('Erro no registro', { error: error.message });
@@ -191,6 +192,7 @@ const RegisterPage = ({ onRegister, onNavigate }) => {
           <button
             type="submit"
             disabled={isLoading}
+            onClick={handleSubmit}
             className="w-full bg-pink-500 hover:bg-pink-600 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300"
           >
             {isLoading ? 'Criando conta...' : 'Registrar'}

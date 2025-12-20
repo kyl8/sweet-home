@@ -1,9 +1,6 @@
-import logging
-
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+from utils.logger import log_debug, log_error
 
 def read_bytes(path: str) -> bytes | None:
-    """Read binary file content from path."""
     pdf_content = None 
     try:
         with open(path, 'rb') as pdf:
@@ -11,19 +8,21 @@ def read_bytes(path: str) -> bytes | None:
                   
         if pdf_content:
             bytes_len = len(pdf_content)
-            logging.debug(f"PDF generated with {bytes_len} bytes. Sending file...")
+            log_debug(f"PDF gerado com {bytes_len} bytes. Enviando arquivo...")
         return pdf_content
     except FileNotFoundError:
-        logging.error(f'File not found at {path}')
+        log_error(f'Arquivo não encontrado em {path}')
         return None
 
 
-def generate_numeric_id_from_string(input_string: str) -> str:
-    """Generate 13-digit numeric ID from string using ordinal values."""
+def generate_numeric_id_from_string(input_string: str, uuid_str: str = "", transaction_id: str = "") -> str:
+    """Gerar ID numérico de 13 dígitos a partir de valores de string combinados."""
     if not input_string:
-        return "0".zfill(13)
-
-    total_sum = sum(ord(char) for char in input_string)
+        input_string = ""
+    
+    combined = f"{input_string}{uuid_str}{transaction_id}"
+    
+    total_sum = sum(ord(char) for char in combined if char.isalnum())
     limited_sum = total_sum % 10**13
     numeric_id_str = str(limited_sum).zfill(13)
     
