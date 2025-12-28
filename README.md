@@ -11,73 +11,48 @@
 <div style="
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 16px;
   justify-content: center;
-  align-items: stretch;
 ">
 
-  <figure style="
-    flex: 1 1 300px;
-    max-width: 350px;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  ">
-    <img src="assets/screenshots/login.PNG"
-         style="width:100%; height:220px; object-fit:contain; border-radius:8px;" />
-    <figcaption align="center"><b>Login</b></figcaption>
+  <figure style="flex: 1 1 280px; max-width: 250px; margin: 0;">
+    <img src="assets/screenshots/login.PNG" style="width:100%; border-radius:8px;" />
   </figure>
 
-  <figure style="flex:1 1 300px; max-width:350px; margin:0; display:flex; flex-direction:column; align-items:center;">
-    <img src="assets/screenshots/register.PNG"
-         style="width:100%; height:220px; object-fit:contain; border-radius:8px;" />
-    <figcaption align="center"><b>Registro</b></figcaption>
+  <figure style="flex: 1 1 280px; max-width: 250px; margin: 0;">
+    <img src="assets/screenshots/register.PNG" style="width:100%; border-radius:8px;" />
   </figure>
 
-  <figure style="flex:1 1 300px; max-width:350px; margin:0; display:flex; flex-direction:column; align-items:center;">
-    <img src="assets/screenshots/dash1.PNG"
-         style="width:100%; height:220px; object-fit:contain; border-radius:8px;" />
-    <figcaption align="center"><b>Dashboard — Visão Geral</b></figcaption>
+  <figure style="flex: 1 1 280px; max-width: 250px; margin: 0;">
+    <img src="assets/screenshots/dash1.PNG" style="width:100%; border-radius:8px;" />
   </figure>
 
-  <figure style="flex:1 1 300px; max-width:350px; margin:0; display:flex; flex-direction:column; align-items:center;">
-    <img src="assets/screenshots/dash2.PNG"
-         style="width:100%; height:220px; object-fit:contain; border-radius:8px;" />
-    <figcaption align="center"><b>Dashboard — Relatórios</b></figcaption>
+  <figure style="flex: 1 1 280px; max-width: 250px; margin: 0;">
+    <img src="assets/screenshots/dash2.PNG" style="width:100%; border-radius:8px;" />
   </figure>
 
-  <figure style="flex:1 1 300px; max-width:350px; margin:0; display:flex; flex-direction:column; align-items:center;">
-    <img src="assets/screenshots/dash3.PNG"
-         style="width:100%; height:220px; object-fit:contain; border-radius:8px;" />
-    <figcaption align="center"><b>Dashboard — Estatísticas</b></figcaption>
+  <figure style="flex: 1 1 280px; max-width: 250px; margin: 0;">
+    <img src="assets/screenshots/dash3.PNG" style="width:100%; border-radius:8px;" />
   </figure>
 
-  <figure style="flex:1 1 300px; max-width:350px; margin:0; display:flex; flex-direction:column; align-items:center;">
-    <img src="assets/screenshots/nv1.PNG"
-         style="width:100%; height:220px; object-fit:contain; border-radius:8px;" />
-    <figcaption align="center"><b>Nova Venda</b></figcaption>
+  <figure style="flex: 1 1 280px; max-width: 250px; margin: 0;">
+    <img src="assets/screenshots/nv1.PNG" style="width:100%; border-radius:8px;" />
   </figure>
 
-  <figure style="flex:1 1 300px; max-width:350px; margin:0; display:flex; flex-direction:column; align-items:center;">
-    <img src="assets/screenshots/nv2.PNG"
-         style="width:100%; height:220px; object-fit:contain; border-radius:8px;" />
-    <figcaption align="center"><b>Seleção de Produtos</b></figcaption>
+  <figure style="flex: 1 1 280px; max-width: 250px; margin: 0;">
+    <img src="assets/screenshots/nv2.PNG" style="width:100%; border-radius:8px;" />
   </figure>
 
-  <figure style="flex:1 1 300px; max-width:350px; margin:0; display:flex; flex-direction:column; align-items:center;">
-    <img src="assets/screenshots/nv3.PNG"
-         style="width:100%; height:220px; object-fit:contain; border-radius:8px;" />
-    <figcaption align="center"><b>Resumo da Venda</b></figcaption>
+  <figure style="flex: 1 1 280px; max-width: 250px; margin: 0;">
+    <img src="assets/screenshots/nv3.PNG" style="width:100%; border-radius:8px;" />
   </figure>
 
-  <figure style="flex:1 1 300px; max-width:350px; margin:0; display:flex; flex-direction:column; align-items:center;">
-    <img src="assets/screenshots/nv4.PNG"
-         style="width:100%; height:220px; object-fit:contain; border-radius:8px;" />
-    <figcaption align="center"><b>Confirmação</b></figcaption>
+  <figure style="flex: 1 1 280px; max-width: 250px; margin: 0;">
+    <img src="assets/screenshots/nv4.PNG" style="width:100%; border-radius:8px;" />
   </figure>
 
 </div>
+
 ## Contents
 
 - Overview
