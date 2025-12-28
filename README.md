@@ -7,25 +7,23 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.0-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-## Screenshots
-
-The application screenshots are stored under `app/assets/screenshots/`. Add or replace images there and reference them below.
+## Presentation
 
 Login/Register 
-![Login](assets/screenshots/login.png)
-![Login](assets/screenshots/register.png)
+![Login](assets/screenshots/login.PNG)
+![Login](assets/screenshots/register.PNG)
 
 
 Dashboard  
-![Sweets](assets/screenshots/dash1.png)
-![Ingredients](assets/screenshots/dash2.png)
-![Utensils](assets/screenshots/dash3.png)
+![Sweets](assets/screenshots/dash1.PNG)
+![Ingredients](assets/screenshots/dash2.PNG)
+![Utensils](assets/screenshots/dash3.PNG)
 
 Options
-![Data export/import](assets/screenshots/nv1.png)
-![Finance page](assets/screenshots/nv2.png)
-![Report page](assets/screenshots/nv3.png)
-![PDV](assets/screenshots/nv4.png)
+![Data export/import](assets/screenshots/nv1.PNG)
+![Finance page](assets/screenshots/nv2.PNG)
+![Report page](assets/screenshots/nv3.PNG)
+![PDV](assets/screenshots/nv4.PNG)
 
 ---
 
@@ -148,7 +146,7 @@ A full‑stack application for managing confectionery operations: inventory, poi
 
 ---
 
-## Project Structure (abridged)
+## Project Structure
 
 - **app/** — frontend (React, Tailwind)
 - **server/** — backend (Quart)
