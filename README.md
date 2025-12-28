@@ -10,19 +10,19 @@
 ## Presentation
 
 Login/Register 
-<img src="assets/screenshots/login.PNG" alt="drawing" width="200"/>
-<img src="assets/screenshots/register.PNG" alt="drawing" width="200"/>
+<img src="assets/screenshots/login.PNG" alt="drawing" width="350"/>
+<img src="assets/screenshots/register.PNG" alt="drawing" width="350"/>
 
 Dashboard  
-<img src="assets/screenshots/dash1.PNG" alt="drawing" width="200"/>
-<img src="assets/screenshots/dash2.PNG" alt="drawing" width="200"/>
-<img src="assets/screenshots/dash3.PNG" alt="drawing" width="200"/>
+<img src="assets/screenshots/dash1.PNG" alt="drawing" width="350"/>
+<img src="assets/screenshots/dash2.PNG" alt="drawing" width="350"/>
+<img src="assets/screenshots/dash3.PNG" alt="drawing" width="350"/>
 
 Options
-<img src="assets/screenshots/nv1.PNG" alt="drawing" width="200"/>
-<img src="assets/screenshots/nv2.PNG" alt="drawing" width="200"/>
-<img src="assets/screenshots/nv3.PNG" alt="drawing" width="200"/>
-<img src="assets/screenshots/nv4.PNG" alt="drawing" width="200"/>
+<img src="assets/screenshots/nv1.PNG" alt="drawing" width="350"/>
+<img src="assets/screenshots/nv2.PNG" alt="drawing" width="350"/>
+<img src="assets/screenshots/nv3.PNG" alt="drawing" width="350"/>
+<img src="assets/screenshots/nv4.PNG" alt="drawing" width="350"/>
 ---
 
 ## Contents
