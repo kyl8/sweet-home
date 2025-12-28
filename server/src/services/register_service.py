@@ -2,7 +2,7 @@ import re
 import datetime
 from email_validator import validate_email, EmailNotValidError
 import zoneinfo
-from utils.logger import log_info, log_error
+from server.src.utils.logger import log_info, log_error
 
 def timestamp() -> str:
     log_info("Gerando timestamp no fuso horário de São Paulo")

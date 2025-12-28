@@ -1,4 +1,4 @@
-from utils.logger import log_debug, log_error
+from server.src.utils.logger import log_debug, log_error
 
 def read_bytes(path: str) -> bytes | None:
     pdf_content = None 

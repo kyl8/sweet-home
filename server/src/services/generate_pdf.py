@@ -3,7 +3,7 @@ import barcode
 import qrcode
 from pathlib import Path
 from barcode.writer import ImageWriter
-from utils.logger import log_debug, log_error
+from server.src.utils.logger import log_debug, log_error
 
 MAX_FILENAME_LENGTH = 255
 MAX_PATH_LENGTH = 1000
@@ -275,11 +275,10 @@ def generate_html(data, username: str, qrcode_path: str, barcode_path: str) -> s
             </thead>
         </table>
         <hr>
-        <p align="center"><b>Codigo de barras</b></p>
+        <p align="center"><b>CÓDIGO DE BARRAS</b></p>
         <p align="center">{barcode_img}</p>
-        <p align="center"><b>Codigo QR</b></p>
+        <p align="center"><b>CÓDIGO QR</b></p>
         <p align="center">{qrcode_img}</p>
-        <p><font size="7">Dados comprobatorios</font></p>
     </body>
     </html>
     """

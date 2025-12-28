@@ -272,7 +272,7 @@ const PDVPage = ({ sweets, onNavigate, userData }) => {
                 throw new Error(validation.error);
             }
 
-            logger.info('💾 Salvando venda no Firestore...');
+            logger.info('Salvando venda no Firestore...');
             const result = await salesService.finalizeSale(
                 currentSaleDocument,
                 cart,
@@ -307,7 +307,7 @@ const PDVPage = ({ sweets, onNavigate, userData }) => {
                     );
                 }
             } else {
-                toast.success(`✅ Venda concluída sem comprovante - ${paymentMethod}`);
+                toast.success(`Venda concluída sem comprovante - ${paymentMethod}`);
             }
 
             setCart([]);
@@ -425,7 +425,7 @@ const PDVPage = ({ sweets, onNavigate, userData }) => {
 
                         {showSalesHistory && (
                             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-lg shadow-lg p-4 mb-6">
-                                <h3 className="font-bold text-lg mb-3">Vendas de Hoje</h3>
+                                <h3 className="font-bold text-lg mb-3">Hoje</h3>
                                 {salesHistory.length === 0 ? (
                                     <p className="text-gray-500">Nenhuma venda realizada hoje</p>
                                 ) : (

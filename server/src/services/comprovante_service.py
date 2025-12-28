@@ -1,27 +1,11 @@
-import logging
-import json
 import os
 from decimal import Decimal
-from enum import Enum
 from pathlib import Path
 from fpdf import FPDF
-from utils.logger import log_debug, log_info, log_error
+from server.src.utils.logger import log_debug, log_info, log_error
 
 MAX_PDF_SIZE = 5 * 1024 * 1024
 MAX_HTML_SIZE = 500 * 1024
-
-def convert_sub_objects(obj):
-    if hasattr(obj, '__dict__'):
-        return obj.__dict__
-    if isinstance(obj, Decimal):
-        return str(obj)
-    if isinstance(obj, Enum):
-        return obj.value
-    return obj
-
-def generate_json_to_api(data):
-    log_debug(f"Serializando objeto")
-    return json.dumps(data, default=convert_sub_objects, indent=4)
 
 def sanitize_html_for_pdf(html_string):
     if not isinstance(html_string, str):
@@ -100,16 +84,3 @@ def format_sales_receipt(html_string: str, base_path: str) -> str | None:
     except Exception as e:
         log_error(f"Erro ao gerar PDF: {str(e)}")
         return None
-
-if __name__ == "__main__":
-    comprovante = Comprovante(
-        qtd=1,
-        value=Decimal(1),
-        payment_type=MetodoPagamento.PIX,
-        payer={"nome": '1'},
-        receiver={"nome": '1'},
-        description='1'
-    )
-    html_content = generate_html(comprovante, generate_qrcode(path), generate_barcode("111111111111111111111", path))
-    print(len(html_content))
-    format_sales_receipt(generate_html(comprovante, generate_qrcode(path), generate_barcode("11111111111111111", path)), path)

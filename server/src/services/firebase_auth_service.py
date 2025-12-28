@@ -1,11 +1,10 @@
 import os
-import json
 import firebase_admin
 from firebase_admin import credentials, firestore
-from models.user_model import User
-from utils.logger import log_info, log_warn, log_error
-import traceback  
-import asyncio  
+from server.src.models.user_model import User
+from server.src.utils.logger import log_info, log_warn, log_error
+import traceback
+import asyncio
 
 def init_firebase():
     try:
@@ -21,11 +20,10 @@ def init_firebase():
         for path in config_paths:
             if os.path.exists(path):
                 service_account_key = path
-                log_info(f'Config firebase nao encontrada: {path}')
                 break
         
         if not service_account_key:
-            log_error(f'Arquivo de configuração do Firebase não encontrado em nenhum destes caminhos: {config_paths}')
+            log_error(f'Arquivo de configuração do Firebase não encontrado')
             return None
         
         if not firebase_admin._apps:
@@ -36,7 +34,6 @@ def init_firebase():
         return firestore.client()
     except Exception as e:
         log_error(f'Erro ao inicializar Firebase: {str(e)}')
-        log_error(traceback.format_exc())  
         return None
 
 firebase_db = init_firebase()
@@ -74,7 +71,6 @@ async def get_user_by_username(username: str) -> User | None:
     except Exception as e:
         last_error = f'Erro ao buscar usuário: {str(e)}'
         log_error(last_error)
-        log_error(traceback.format_exc())
         return None
 
 async def get_user_by_id(user_id: int) -> User | None:
@@ -101,14 +97,13 @@ async def get_user_by_id(user_id: int) -> User | None:
     except Exception as e:
         last_error = f'Erro ao buscar usuário por ID: {str(e)}'
         log_error(last_error)
-        log_error(traceback.format_exc())
         return None
 
 async def create_user(user_id: int, username: str, email: str, password: str) -> bool:
     global last_error
     clear_last_error()
     if not firebase_db:
-        last_error = 'Firebase não inicializado. Verifique serviceAccountKey.json / firebaseAdminConfig.json'
+        last_error = 'Firebase não inicializado'
         log_error(last_error)
         return False
     
@@ -155,7 +150,6 @@ async def create_user(user_id: int, username: str, email: str, password: str) ->
     except Exception as e:
         last_error = f'Erro ao criar usuário: {str(e)}'
         log_error(last_error)
-        log_error(traceback.format_exc())  
         return False
 
 async def authenticate(username: str, password: str) -> User | None:
@@ -193,14 +187,12 @@ async def authenticate(username: str, password: str) -> User | None:
     except Exception as e:
         last_error = f'Erro ao autenticar: {str(e)}'
         log_error(last_error)
-        log_error(traceback.format_exc())
         return None
 
 def init_default_admin():
-    """Inicializar usuário admin padrão"""
     try:
         if not firebase_db:
-            log_error('Firebase não inicializado, não é possível criar admin')
+            log_error('Firebase não inicializado')
             return
         
         docs = firebase_db.collection(USERS_COLLECTION).where('username', '==', 'admin').limit(1).stream()
@@ -231,17 +223,12 @@ def init_default_admin():
             log_info('Admin user already exists in Firebase')
     except Exception as e:
         log_error(f'Erro ao inicializar admin: {str(e)}')
-        log_error(traceback.format_exc())
-        global last_error
-        last_error = f'Erro ao inicializar admin: {str(e)}'
 
 if firebase_db:
     try:
         init_default_admin()
     except Exception as e:
         log_error(f'Erro ao inicializar admin na importação: {str(e)}')
-        log_error(traceback.format_exc())
-        last_error = f'Erro ao inicializar admin na importação: {str(e)}'
 
 def register_user(user_id: int, username: str, email: str, password: str) -> bool:
     global last_error
@@ -254,14 +241,13 @@ def register_user(user_id: int, username: str, email: str, password: str) -> boo
             return result
         except RuntimeError as e:
             if 'Event loop ja esta rodando' in str(e):
-                last_error = 'Event loop ja esta rodando. Use register_user_async em contexto async.'
+                last_error = 'Event loop ja esta rodando'
                 log_warn(last_error)
                 return False
             raise
     except Exception as e:
         last_error = f'Erro ao chamar register_user: {str(e)}'
         log_error(last_error)
-        log_error(traceback.format_exc())
         return False
 
 async def register_user_async(user_id: int, username: str, email: str, password: str) -> bool:
@@ -275,5 +261,4 @@ async def register_user_async(user_id: int, username: str, email: str, password:
     except Exception as e:
         last_error = f'Erro ao chamar register_user_async: {str(e)}'
         log_error(last_error)
-        log_error(traceback.format_exc())
         return False

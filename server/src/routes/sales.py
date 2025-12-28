@@ -1,38 +1,18 @@
 import io
 import pathlib
 from decimal import Decimal, InvalidOperation
-from functools import wraps
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from quart import Blueprint, request, jsonify, send_file
 from quart_jwt_extended import jwt_required, get_jwt_identity
 
-from models.comprovante_model import Comprovante, MetodoPagamento
-from services.comprovante_service import format_sales_receipt
-from services.generate_pdf import generate_html, generate_qrcode, generate_barcode
-from utils.utils import read_bytes
-from utils.logger import log_info, log_error, log_warn
+from server.src.models.comprovante_model import Comprovante, MetodoPagamento
+from server.src.services.comprovante_service import format_sales_receipt
+from server.src.services.generate_pdf import generate_html, generate_qrcode, generate_barcode
+from server.src.utils.utils import read_bytes
+from server.src.utils.logger import log_info, log_error, log_warn
 
 sales = Blueprint('sales', __name__)
-
-RATE_LIMIT_WINDOW = 60
-RATE_LIMIT_REQUESTS = 10
-rate_limit_data = {}
-
-def rate_limit_check(user_id):
-    now = datetime.now()
-    if user_id not in rate_limit_data:
-        rate_limit_data[user_id] = []
-    
-    timestamps = rate_limit_data[user_id]
-    timestamps = [ts for ts in timestamps if (now - ts).total_seconds() < RATE_LIMIT_WINDOW]
-    
-    if len(timestamps) >= RATE_LIMIT_REQUESTS:
-        return False
-    
-    timestamps.append(now)
-    rate_limit_data[user_id] = timestamps
-    return True
 
 def safe_decimal(value, default=Decimal('0')):
     try:
@@ -51,10 +31,6 @@ async def finish_sale():
     
     user_id = current_user.get('id')
     username = current_user.get('username', 'Usuario')
-    
-    if not rate_limit_check(user_id):
-        log_warn('Rate limit excedido', {'user_id': user_id})
-        return jsonify({"msg": "Muitas requisicoes. Tente novamente mais tarde."}), 429
     
     data = await request.get_json()
     if not data:

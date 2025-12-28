@@ -4,8 +4,8 @@ from decimal import Decimal
 from enum import Enum
 from typing import Dict, Any, Optional, List
 
-from services.register_service import timestamp
-from utils.utils import generate_numeric_id_from_string
+from server.src.services.register_service import timestamp
+from server.src.utils.utils import generate_numeric_id_from_string
 
 class MetodoPagamento(str, Enum):
     PIX = "PIX"

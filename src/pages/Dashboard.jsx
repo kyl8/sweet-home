@@ -45,19 +45,21 @@ const AddIcon = () => (
 
 const LARGE_LIST_THRESHOLD = 40
 
-const DashboardPage = ({
-    onNavigate,
-    sweets,
-    setSweets,
-    ingredients,
-    setIngredients,
-    utensils,
-    setUtensils,
-    userData,
-    activeTab,
-    onTabChange,
-    onDelete
-}) => {
+const DashboardPage = (props) => {
+    const {
+        onNavigate,
+        sweets,
+        setSweets,
+        ingredients,
+        setIngredients,
+        utensils,
+        setUtensils,
+        userData,
+        activeTab,
+        onTabChange,
+        onDelete
+    } = props
+
     const safeSweets = Array.isArray(sweets) ? sweets : []
     const safeIngredients = Array.isArray(ingredients) ? ingredients : []
     const safeUtensils = Array.isArray(utensils) ? utensils : []
@@ -140,7 +142,68 @@ const DashboardPage = ({
         { id: 'kitchenware', label: 'Utensílios', icon: <KitchenwareIcon /> },
     ]
 
+    const [backendStatus, setBackendStatus] = useState({ ok: true, message: '' })
+    const baseApiUrl = (() => {
+        try {
+            const envUrl = import.meta?.env?.VITE_API_URL || ''
+            if (envUrl) return envUrl.replace(/\/+$/, '')
+        } catch (e) { /* ignore */ }
+        return 'http://localhost:3001'
+    })()
+
+    const checkBackend = useCallback(async (signal) => {
+        try {
+            const controller = signal || new AbortController()
+            const res = await fetch(`${baseApiUrl}/`, { method: 'GET', signal: controller.signal, cache: 'no-store' })
+            const text = await res.text().catch(() => '')
+            if (!res.ok) {
+                if (/Not enough segments/i.test(text)) {
+                    setBackendStatus({ ok: false, message: 'Gerador de comprovante falhou no servidor: "Not enough segments". Verifique se o JWT/token do backend é válido e se o servidor está rodando na porta 3001.' })
+                } else {
+                    setBackendStatus({ ok: false, message: `Backend respondeu com ${res.status}.` })
+                }
+                return
+            }
+            setBackendStatus({ ok: true, message: '' })
+        } catch (err) {
+                if (err.name === 'AbortError') return
+                setBackendStatus({ ok: false, message: `Não foi possível alcançar o backend em ${baseApiUrl}. Verifique se o servidor está rodando na porta 3001.` })
+        }
+    }, [baseApiUrl])
+
+    useEffect(() => {
+        const controller = new AbortController()
+        checkBackend(controller)
+        return () => controller.abort()
+    }, [checkBackend])
+
+    const sanitizeInput = (value) => {
+        if (!value) return ''
+        // trim, remove control characters and strip simple tags, limit length
+        let v = String(value).trim().replace(/[\u0000-\u001F\u007F]/g, '')
+        v = v.replace(/<[^>]*>/g, '') // remove tags
+        if (v.length > 150) v = v.slice(0, 150)
+        return v
+    }
+
     return (
+        <>
+        {/* Backend status banner */}
+        {!backendStatus.ok && (
+            <div className="w-full bg-yellow-100 border-l-4 border-yellow-400 text-yellow-700 px-4 py-3 mb-4" role="alert">
+                <div className="flex items-center justify-between">
+                    <p className="text-sm">{backendStatus.message}</p>
+                    <div className="ml-4">
+                        <button
+                            onClick={() => checkBackend()}
+                            className="bg-yellow-200 hover:bg-yellow-300 text-yellow-800 font-semibold py-1 px-3 rounded"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
         <div className="container mx-auto px-4 sm:px-6 py-8">
             <div className="max-w-xl mx-auto mb-6">
                 <div className="relative">
@@ -148,10 +211,11 @@ const DashboardPage = ({
                         type="text"
                         value={searchQuery}
                         onChange={(e) => {
-                            setSearchQuery(e.target.value);
+                            setSearchQuery(sanitizeInput(e.target.value));
                         }}
                         placeholder={activeSearchPlaceholder}
                         className="w-full px-4 py-3 pl-4 pr-12 border-2 border-pink-300 rounded-lg focus:outline-none focus:border-pink-500 transition"
+                        maxLength={150}
                     />
                     {searchQuery && (
                         <button
@@ -345,6 +409,7 @@ const DashboardPage = ({
                 </AnimatePresence>
             </div>
         </div>
+        </>
     )
 }
 

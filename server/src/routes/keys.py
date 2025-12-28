@@ -1,9 +1,8 @@
 from quart import Blueprint, request, jsonify
 from quart_jwt_extended import jwt_required, get_jwt_identity
-from typing import Optional
 
-from services import key_service
-from utils.logger import log_info, log_warn, log_error, log_debug
+from server.src.services import key_service
+from server.src.utils.logger import log_info, log_warn, log_error, log_debug
 
 keys = Blueprint('keys', __name__)
 

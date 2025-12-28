@@ -7,7 +7,7 @@ import os
 from functools import wraps
 
 from quart import request, jsonify
-from utils.logger import log_info, log_warn, log_error
+from server.src.utils.logger import log_info, log_warn, log_error
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -19,7 +19,7 @@ API_KEYS_COLLECTION = 'api_keys'
 api_keys_db = {}
 
 try:
-    from services.firebase_auth_service import firebase_db
+    from server.src.services.firebase_auth_service import firebase_db
     from firebase_admin import firestore as _firestore
 except Exception:
     firebase_db = None
