@@ -10,21 +10,19 @@
 ## Presentation
 
 Login/Register 
-![Login](assets/screenshots/login.PNG)
-![Login](assets/screenshots/register.PNG)
-
+<img src="assets/screenshots/login.PNG" alt="drawing" width="200"/>
+<img src="assets/screenshots/register.PNG" alt="drawing" width="200"/>
 
 Dashboard  
-![Sweets](assets/screenshots/dash1.PNG)
-![Ingredients](assets/screenshots/dash2.PNG)
-![Utensils](assets/screenshots/dash3.PNG)
+<img src="assets/screenshots/dash1.PNG" alt="drawing" width="200"/>
+<img src="assets/screenshots/dash2.PNG" alt="drawing" width="200"/>
+<img src="assets/screenshots/dash3.PNG" alt="drawing" width="200"/>
 
 Options
-![Data export/import](assets/screenshots/nv1.PNG)
-![Finance page](assets/screenshots/nv2.PNG)
-![Report page](assets/screenshots/nv3.PNG)
-![PDV](assets/screenshots/nv4.PNG)
-
+<img src="assets/screenshots/nv1.PNG" alt="drawing" width="200"/>
+<img src="assets/screenshots/nv2.PNG" alt="drawing" width="200"/>
+<img src="assets/screenshots/nv3.PNG" alt="drawing" width="200"/>
+<img src="assets/screenshots/nv4.PNG" alt="drawing" width="200"/>
 ---
 
 ## Contents
