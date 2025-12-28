@@ -8,16 +8,59 @@
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 ## Presentation
-<img src="assets/screenshots/login.PNG" alt="drawing" width="350"/>
-<img src="assets/screenshots/register.PNG" alt="drawing" width="350"/>
-<img src="assets/screenshots/dash1.PNG" alt="drawing" width="350"/>
-<img src="assets/screenshots/dash2.PNG" alt="drawing" width="350"/>
-<img src="assets/screenshots/dash3.PNG" alt="drawing" width="350"/>
-<img src="assets/screenshots/nv1.PNG" alt="drawing" width="350"/>
-<img src="assets/screenshots/nv2.PNG" alt="drawing" width="350"/>
-<img src="assets/screenshots/nv3.PNG" alt="drawing" width="350"/>
-<img src="assets/screenshots/nv4.PNG" alt="drawing" width="350"/>
----
+<div style="
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+">
+
+  <figure style="flex: 1 1 280px; max-width: 350px; margin: 0;">
+    <img src="assets/screenshots/login.PNG" style="width:100%; border-radius:8px;" />
+    <figcaption align="center"><b>Login</b></figcaption>
+  </figure>
+
+  <figure style="flex: 1 1 280px; max-width: 350px; margin: 0;">
+    <img src="assets/screenshots/register.PNG" style="width:100%; border-radius:8px;" />
+    <figcaption align="center"><b>Registro</b></figcaption>
+  </figure>
+
+  <figure style="flex: 1 1 280px; max-width: 350px; margin: 0;">
+    <img src="assets/screenshots/dash1.PNG" style="width:100%; border-radius:8px;" />
+    <figcaption align="center"><b>Dashboard — Visão Geral</b></figcaption>
+  </figure>
+
+  <figure style="flex: 1 1 280px; max-width: 350px; margin: 0;">
+    <img src="assets/screenshots/dash2.PNG" style="width:100%; border-radius:8px;" />
+    <figcaption align="center"><b>Dashboard — Relatórios</b></figcaption>
+  </figure>
+
+  <figure style="flex: 1 1 280px; max-width: 350px; margin: 0;">
+    <img src="assets/screenshots/dash3.PNG" style="width:100%; border-radius:8px;" />
+    <figcaption align="center"><b>Dashboard — Estatísticas</b></figcaption>
+  </figure>
+
+  <figure style="flex: 1 1 280px; max-width: 350px; margin: 0;">
+    <img src="assets/screenshots/nv1.PNG" style="width:100%; border-radius:8px;" />
+    <figcaption align="center"><b>Nova Venda</b></figcaption>
+  </figure>
+
+  <figure style="flex: 1 1 280px; max-width: 350px; margin: 0;">
+    <img src="assets/screenshots/nv2.PNG" style="width:100%; border-radius:8px;" />
+    <figcaption align="center"><b>Seleção de Produtos</b></figcaption>
+  </figure>
+
+  <figure style="flex: 1 1 280px; max-width: 350px; margin: 0;">
+    <img src="assets/screenshots/nv3.PNG" style="width:100%; border-radius:8px;" />
+    <figcaption align="center"><b>Resumo da Venda</b></figcaption>
+  </figure>
+
+  <figure style="flex: 1 1 280px; max-width: 350px; margin: 0;">
+    <img src="assets/screenshots/nv4.PNG" style="width:100%; border-radius:8px;" />
+    <figcaption align="center"><b>Confirmação</b></figcaption>
+  </figure>
+
+</div>
 
 ## Contents
 
